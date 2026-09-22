@@ -25,3 +25,7 @@ jobs:
             - run: pnpm format:check
             - run: pnpm typecheck
             - run: pnpm test
+            - name: Generated Can I Email data is up to date
+              run: |
+                  pnpm data:build
+                  git diff --exit-code -- src/generated

@@ -4,6 +4,7 @@
     "version": "0.0.1",
     "description": "Drag-and-drop email designer with client-compatibility checks powered by Can I Email",
     "scripts": {
+        "data:build": "node scripts/build-compat-data.mjs",
         "test": "vitest run --passWithNoTests",
         "typecheck": "tsc --noEmit",
         "format": "prettier --write .",
