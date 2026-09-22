@@ -1,2 +1,2 @@
 // Public entry point of @mailblocks/core.
-export {};
+export * from './compat';
