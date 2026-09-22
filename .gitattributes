@@ -1,0 +1,2 @@
+# Normalize line endings so Windows and Linux contributors do not fight over CRLF.
+* text=auto eol=lf
