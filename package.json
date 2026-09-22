@@ -1,0 +1,45 @@
+{
+  "name": "@mailblocks/core",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Drag-and-drop email designer with client-compatibility checks powered by Can I Email",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "email",
+    "email-builder",
+    "email-editor",
+    "caniemail"
+  ],
+  "author": {
+    "name": "Ibrahim Mohamed",
+    "url": "https://github.com/ibrahimmohamed4"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mailblocks/mailblocks.git"
+  },
+  "homepage": "https://github.com/mailblocks/mailblocks#readme",
+  "bugs": "https://github.com/mailblocks/mailblocks/issues",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22.12"
+  },
+  "packageManager": "pnpm@11.18.0",
+  "devDependencies": {
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.1"
+  }
+}
