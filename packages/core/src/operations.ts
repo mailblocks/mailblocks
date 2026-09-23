@@ -1,4 +1,12 @@
-import type { Block, Column, EmailDocument, Row } from './model';
+import {
+    createId,
+    type Block,
+    type Column,
+    type DocumentStyles,
+    type EmailDocument,
+    type Row,
+    type RowStyles,
+} from './model';
 
 /**
  * Pure operations on a document. Every function returns a new document and
@@ -98,6 +106,63 @@ export function moveBlock(
 ): EmailDocument {
     const { block } = requireBlock(doc, blockId);
     return addBlock(removeBlock(doc, blockId), columnId, block, index);
+}
+
+/** Merges `styles` into the document styles. */
+export function updateDocumentStyles(
+    doc: EmailDocument,
+    styles: Partial<DocumentStyles>,
+): EmailDocument {
+    return { ...doc, styles: { ...doc.styles, ...styles } };
+}
+
+/** Merges `styles` into a row's styles. */
+export function updateRowStyles(
+    doc: EmailDocument,
+    rowId: string,
+    styles: Partial<RowStyles>,
+): EmailDocument {
+    requireRow(doc, rowId);
+    return {
+        ...doc,
+        rows: doc.rows.map((row) =>
+            row.id === rowId ? { ...row, styles: { ...row.styles, ...styles } } : row,
+        ),
+    };
+}
+
+/** Moves a row to `index`, counted after it has been taken out of its current place. */
+export function moveRow(doc: EmailDocument, rowId: string, index: number): EmailDocument {
+    const row = requireRow(doc, rowId);
+    return addRow(removeRow(doc, rowId), row, index);
+}
+
+/**
+ * Gives a row one column per entry of `widths` (percentages adding up to 100).
+ * Existing columns keep their ids and blocks in order; new ones start empty.
+ * When the row gets fewer columns, the blocks of the dropped columns move to
+ * the end of the last remaining one, so no content is lost.
+ */
+export function setRowColumns(doc: EmailDocument, rowId: string, widths: number[]): EmailDocument {
+    const total = widths.reduce((sum, width) => sum + width, 0);
+    if (
+        widths.length === 0 ||
+        widths.some((width) => !(width > 0)) ||
+        Math.abs(total - 100) > 0.5
+    ) {
+        throw new RangeError(`Column widths must be positive and add up to 100, got [${widths}]`);
+    }
+    const row = requireRow(doc, rowId);
+    const columns: Column[] = widths.map((width, i) => {
+        const existing = row.columns[i];
+        return existing ? { ...existing, width } : { id: createId(), width, blocks: [] };
+    });
+    const dropped = row.columns.slice(widths.length).flatMap((column) => column.blocks);
+    if (dropped.length > 0) {
+        const last = columns[columns.length - 1]!;
+        columns[columns.length - 1] = { ...last, blocks: [...last.blocks, ...dropped] };
+    }
+    return { ...doc, rows: doc.rows.map((r) => (r.id === rowId ? { ...r, columns } : r)) };
 }
 
 // ---------------------------------------------------------------------------

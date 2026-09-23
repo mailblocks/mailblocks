@@ -58,6 +58,18 @@
 .mb-row {
     display: flex;
     align-items: flex-start;
+    outline: 1px dashed transparent;
+    outline-offset: -1px;
+}
+
+.mb-row:hover {
+    outline-color: #c7d2fe;
+}
+
+.mb-row-selected,
+.mb-row-selected:hover {
+    outline: 2px solid #818cf8;
+    outline-offset: -2px;
 }
 
 .mb-column {
