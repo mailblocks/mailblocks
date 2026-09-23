@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { check, checkBlock, type Target } from './check';
-import { createEmptyDocument, createRow, createTextBlock, type EmailDocument } from './model';
+import { check, checkBlock, imageFormatFeature, type Target } from './check';
+import {
+    createEmptyDocument,
+    createImageBlock,
+    createRow,
+    createTextBlock,
+    type EmailDocument,
+} from './model';
 
 const GMAIL_DESKTOP: Target = { family: 'gmail', platform: 'desktop-webmail' };
 const OUTLOOK_WINDOWS: Target = { family: 'outlook', platform: 'windows' };
@@ -75,5 +81,46 @@ describe('checkBlock()', () => {
         );
         expect(warning?.feature).toBe('css-text-align');
         expect(warning?.level).toBe('a');
+    });
+});
+
+describe('image blocks', () => {
+    it('warns about image formats the target cannot show', () => {
+        const block = createImageBlock('https://example.com/photo.webp?size=lg', '');
+        const warnings = checkBlock(block, [OUTLOOK_WINDOWS]);
+        const format = warnings.find((w) => w.property === 'src');
+        expect(format?.feature).toBe('image-webp');
+        expect(format?.level).toBe('n');
+    });
+
+    it('stays quiet about formats every client shows', () => {
+        const block = createImageBlock('https://example.com/photo.jpg', '');
+        expect(checkBlock(block, [GMAIL_DESKTOP]).map((w) => w.property)).not.toContain('src');
+    });
+
+    it('warns about border radius only when set', () => {
+        const block = createImageBlock('https://example.com/a.png', '');
+        expect(checkBlock(block, [OUTLOOK_WINDOWS]).map((w) => w.property)).not.toContain(
+            'borderRadius',
+        );
+        block.styles.borderRadius = 6;
+        const warning = checkBlock(block, [OUTLOOK_WINDOWS]).find(
+            (w) => w.property === 'borderRadius',
+        );
+        expect(warning?.feature).toBe('css-border-radius');
+        expect(warning?.level).toBe('n');
+    });
+});
+
+describe('imageFormatFeature()', () => {
+    it('reads the extension, ignoring query strings and case', () => {
+        expect(imageFormatFeature('https://x.com/a.PNG?x=1#y')).toBe('image-png');
+        expect(imageFormatFeature('https://x.com/a.jpeg')).toBe('image-jpg');
+        expect(imageFormatFeature('data:image/png;base64,AAAA')).toBe('image-base64');
+    });
+
+    it('returns undefined when the format is unknown', () => {
+        expect(imageFormatFeature('https://x.com/image')).toBeUndefined();
+        expect(imageFormatFeature('https://x.com/a.xyz')).toBeUndefined();
     });
 });

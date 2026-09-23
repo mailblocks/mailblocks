@@ -1,5 +1,5 @@
 import { supportDetails, type Family, type Platform, type SupportLevel } from './compat';
-import type { Block, EmailDocument, TextStyles } from './model';
+import type { Block, EmailDocument, ImageStyles, TextStyles } from './model';
 
 /** An email client the document should render well in. */
 export interface Target {
@@ -41,6 +41,44 @@ const TEXT_STYLE_CHECKS: StyleCheck<TextStyles>[] = [
     },
 ];
 
+const IMAGE_STYLE_CHECKS: StyleCheck<ImageStyles>[] = [
+    { property: 'borderRadius', feature: 'css-border-radius', isSet: (s) => s.borderRadius > 0 },
+    {
+        property: 'padding',
+        feature: 'css-padding',
+        isSet: (s) => s.paddingTop + s.paddingRight + s.paddingBottom + s.paddingLeft > 0,
+    },
+];
+
+/** Can I Email feature slug per image file extension. */
+const IMAGE_FORMAT_FEATURES: Record<string, string> = {
+    jpg: 'image-jpg',
+    jpeg: 'image-jpg',
+    png: 'image-png',
+    gif: 'image-gif',
+    webp: 'image-webp',
+    svg: 'image-svg',
+    avif: 'image-avif',
+    bmp: 'image-bmp',
+    ico: 'image-ico',
+    tif: 'image-tiff',
+    tiff: 'image-tiff',
+    heif: 'image-heif',
+    heic: 'image-heif',
+    apng: 'image-apng',
+};
+
+/**
+ * The Can I Email feature for an image URL's format, judged by its file
+ * extension or `data:` prefix. `undefined` when the format cannot be told.
+ */
+export function imageFormatFeature(src: string): string | undefined {
+    if (src.startsWith('data:')) return 'image-base64';
+    const path = src.split(/[?#]/)[0] ?? '';
+    const extension = path.slice(path.lastIndexOf('.') + 1).toLowerCase();
+    return path.includes('.') ? IMAGE_FORMAT_FEATURES[extension] : undefined;
+}
+
 /**
  * Lists every style in the document that one of the `targets` does not fully
  * support according to Can I Email. An empty array means the document is safe
@@ -61,6 +99,13 @@ export function checkBlock(block: Block, targets: readonly Target[]): CompatWarn
     switch (block.type) {
         case 'text':
             return checkStyles(block.id, block.styles, TEXT_STYLE_CHECKS, targets);
+        case 'image': {
+            const format = imageFormatFeature(block.src);
+            return [
+                ...(format ? checkFeature(block.id, 'src', format, targets) : []),
+                ...checkStyles(block.id, block.styles, IMAGE_STYLE_CHECKS, targets),
+            ];
+        }
     }
 }
 
@@ -70,22 +115,31 @@ function checkStyles<Styles>(
     checks: readonly StyleCheck<Styles>[],
     targets: readonly Target[],
 ): CompatWarning[] {
+    return checks
+        .filter(({ isSet }) => isSet(styles))
+        .flatMap(({ property, feature }) => checkFeature(blockId, property, feature, targets));
+}
+
+/** Warnings for one Can I Email feature across the targets. */
+function checkFeature(
+    blockId: string,
+    property: string,
+    feature: string,
+    targets: readonly Target[],
+): CompatWarning[] {
     const warnings: CompatWarning[] = [];
-    for (const { property, feature, isSet } of checks) {
-        if (!isSet(styles)) continue;
-        for (const target of targets) {
-            const details = supportDetails(feature, target.family, target.platform);
-            if (!details || details.level === 'y') continue;
-            warnings.push({
-                blockId,
-                property,
-                feature,
-                target,
-                level: details.level,
-                version: details.version,
-                notes: details.notes,
-            });
-        }
+    for (const target of targets) {
+        const details = supportDetails(feature, target.family, target.platform);
+        if (!details || details.level === 'y') continue;
+        warnings.push({
+            blockId,
+            property,
+            feature,
+            target,
+            level: details.level,
+            version: details.version,
+            notes: details.notes,
+        });
     }
     return warnings;
 }

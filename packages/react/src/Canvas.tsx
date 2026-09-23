@@ -1,12 +1,14 @@
 import {
     addBlock,
     addRow,
+    createImageBlock,
     createRow,
     createTextBlock,
     updateBlock,
     type Block,
     type EmailDocument,
 } from '@mailblocks/core';
+import { ImageBlockView } from './ImageBlockView';
 import { TextBlockView } from './TextBlockView';
 
 interface CanvasProps {
@@ -18,17 +20,19 @@ interface CanvasProps {
 
 /** Renders the document roughly as the export will, with every block editable in place. */
 export function Canvas({ doc, onChange, selectedBlockId, onSelect }: CanvasProps) {
-    const { backgroundColor, contentWidth, fontFamily } = doc.styles;
+    const { backgroundColor, contentWidth, contentBackgroundColor, fontFamily } = doc.styles;
 
-    const addTextBlock = (columnId: string) => {
-        const block = createTextBlock('<p>New text</p>');
+    const add = (columnId: string, block: Block) => {
         onChange(addBlock(doc, columnId, block));
         onSelect(block.id);
     };
 
     return (
         <div className="mb-canvas" style={{ backgroundColor }} onClick={() => onSelect(undefined)}>
-            <div className="mb-content" style={{ width: contentWidth, fontFamily }}>
+            <div
+                className="mb-content"
+                style={{ width: contentWidth, backgroundColor: contentBackgroundColor, fontFamily }}
+            >
                 {doc.rows.map((row) => (
                     <div
                         key={row.id}
@@ -56,16 +60,28 @@ export function Canvas({ doc, onChange, selectedBlockId, onSelect }: CanvasProps
                                         }
                                     />
                                 ))}
-                                <button
-                                    type="button"
-                                    className="mb-add"
-                                    onClick={(event) => {
-                                        event.stopPropagation();
-                                        addTextBlock(column.id);
-                                    }}
-                                >
-                                    + Text
-                                </button>
+                                <div className="mb-add-block">
+                                    <button
+                                        type="button"
+                                        className="mb-add"
+                                        onClick={(event) => {
+                                            event.stopPropagation();
+                                            add(column.id, createTextBlock('<p>New text</p>'));
+                                        }}
+                                    >
+                                        + Text
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="mb-add"
+                                        onClick={(event) => {
+                                            event.stopPropagation();
+                                            add(column.id, createImageBlock());
+                                        }}
+                                    >
+                                        + Image
+                                    </button>
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -115,5 +131,7 @@ function BlockView({ block, selected, onSelect, onChange }: BlockViewProps) {
                     onChange={onChange}
                 />
             );
+        case 'image':
+            return <ImageBlockView block={block} selected={selected} onSelect={onSelect} />;
     }
 }

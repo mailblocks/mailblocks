@@ -1,4 +1,4 @@
-import type { Block, Column, EmailDocument, Row, TextBlock } from './model';
+import type { Block, Column, EmailDocument, ImageBlock, Row, TextBlock } from './model';
 
 /**
  * Renders a document as a complete HTML email.
@@ -9,7 +9,7 @@ import type { Block, Column, EmailDocument, Row, TextBlock } from './model';
  * in the browser and on the server alike.
  */
 export function exportHtml(doc: EmailDocument): string {
-    const { backgroundColor, contentWidth, fontFamily } = doc.styles;
+    const { backgroundColor, contentWidth, contentBackgroundColor, fontFamily } = doc.styles;
     const rows = doc.rows.map((row) => renderRow(row, doc)).join('\n');
 
     return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
@@ -39,7 +39,7 @@ p { margin: 0; }
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:${attr(backgroundColor)};">
 <tr>
 <td align="center" style="padding:0;">
-<table role="presentation" width="${contentWidth}" cellpadding="0" cellspacing="0" border="0" style="width:${contentWidth}px;max-width:${contentWidth}px;font-family:${attr(fontFamily)};">
+<table role="presentation" width="${contentWidth}" cellpadding="0" cellspacing="0" border="0" bgcolor="${attr(contentBackgroundColor)}" style="width:${contentWidth}px;max-width:${contentWidth}px;background-color:${attr(contentBackgroundColor)};font-family:${attr(fontFamily)};">
 ${rows}
 </table>
 </td>
@@ -71,7 +71,9 @@ ${columns}
 
 function renderColumn(column: Column, doc: EmailDocument): string {
     const width = formatPercent(column.width);
-    const blocks = column.blocks.map((block) => renderBlock(block, doc)).join('\n');
+    // Outlook needs images sized in pixels, so blocks get the column's pixel width.
+    const columnWidth = Math.round((doc.styles.contentWidth * column.width) / 100);
+    const blocks = column.blocks.map((block) => renderBlock(block, doc, columnWidth)).join('\n');
 
     return `<td valign="top" width="${width}%" style="width:${width}%;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
@@ -80,11 +82,43 @@ ${blocks}
 </td>`;
 }
 
-function renderBlock(block: Block, doc: EmailDocument): string {
+function renderBlock(block: Block, doc: EmailDocument, columnWidth: number): string {
     switch (block.type) {
         case 'text':
             return renderTextBlock(block, doc);
+        case 'image':
+            return renderImageBlock(block, columnWidth);
     }
+}
+
+function renderImageBlock(block: ImageBlock, columnWidth: number): string {
+    if (!block.src) return '';
+    const s = block.styles;
+    const available = Math.max(0, columnWidth - s.paddingLeft - s.paddingRight);
+    const width = Math.min(block.width ?? available, available);
+    const cellStyles = [
+        `padding:${px(s.paddingTop)} ${px(s.paddingRight)} ${px(s.paddingBottom)} ${px(s.paddingLeft)}`,
+    ];
+    const imageStyles = [
+        'display:block',
+        `width:${px(width)}`,
+        'max-width:100%',
+        'height:auto',
+        'border:0',
+        s.borderRadius > 0 && `border-radius:${px(s.borderRadius)}`,
+        s.align === 'center' && 'margin:0 auto',
+        s.align === 'right' && 'margin:0 0 0 auto',
+    ];
+    const image = `<img src="${attr(block.src)}" alt="${attr(block.alt)}" width="${width}" style="${css(imageStyles)}" />`;
+    const content = block.href
+        ? `<a href="${attr(block.href)}" target="_blank" style="display:block;">${image}</a>`
+        : image;
+
+    return `<tr>
+<td align="${s.align}" style="${css(cellStyles)}">
+${content}
+</td>
+</tr>`;
 }
 
 function renderTextBlock(block: TextBlock, doc: EmailDocument): string {
