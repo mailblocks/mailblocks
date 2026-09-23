@@ -262,18 +262,23 @@ describe('<MailBlocks /> with button blocks', () => {
         expect(screen.getByText('Buy now')).toBeTruthy();
     });
 
-    it('warns about rounded corners in Outlook for the selected button', async () => {
+    it('warns about rounded corners for the selected button where they cannot be drawn', async () => {
         render(
             <MailBlocks
                 document={documentWith(createButtonBlock('Shop'))}
                 onChange={vi.fn()}
-                targets={[{ family: 'outlook', platform: 'windows' }]}
+                targets={[
+                    { family: 'outlook', platform: 'windows' },
+                    { family: 'orange', platform: 'desktop-webmail' },
+                ]}
             />,
         );
 
         await userEvent.click(screen.getByText('Shop'));
-        expect(screen.getByText('borderRadius')).toBeTruthy();
-        expect(screen.getAllByText('not supported').length).toBeGreaterThan(0);
+        // Orange cannot round the corners; Outlook on Windows gets the VML button.
+        const warning = screen.getByText('borderRadius').closest('li');
+        expect(warning?.textContent).toContain('orange');
+        expect(screen.getAllByText('borderRadius')).toHaveLength(1);
     });
 });
 

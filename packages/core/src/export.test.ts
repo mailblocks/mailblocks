@@ -257,3 +257,62 @@ describe('exportHtml() background fallbacks', () => {
         expect(html).toContain('<td style="padding:0px 0 0px 0;">');
     });
 });
+
+describe('exportHtml() VML fallback for rounded buttons', () => {
+    function buttonHtml(configure: (block: ReturnType<typeof createButtonBlock>) => void) {
+        const block = createButtonBlock('Shop now', 'https://example.com/?a=1&b=2');
+        configure(block);
+        return exportHtml(documentWith(block));
+    }
+
+    it('draws a rounded button as a VML roundrect for Outlook and hides the HTML one from it', () => {
+        const html = buttonHtml(() => {});
+        const start = html.indexOf('<!--[if mso]>\n<v:roundrect');
+        const vml = html.slice(start, html.indexOf('<![endif]-->', start));
+        expect(start).toBeGreaterThan(0);
+
+        expect(vml).toContain('<v:roundrect xmlns:v="urn:schemas-microsoft-com:vml"');
+        expect(vml).toContain('href="https://example.com/?a=1&amp;b=2"');
+        expect(vml).toContain('fillcolor="#2563eb"');
+        expect(vml).toContain('stroke="f"');
+        expect(vml).toContain('<w:anchorlock/>');
+        expect(vml).toContain('>Shop now</center>');
+        // 16px text: 19px line height + 2 × 12px padding
+        expect(vml).toContain('height:43px;');
+        // 4px radius over half of the 43px height
+        expect(vml).toContain('arcsize="19%"');
+
+        expect(html).toMatch(/<!--\[if !mso\]><!-->\n<table role="presentation" align="center"/);
+        expect(html).toContain('</table>\n<!--<![endif]-->');
+    });
+
+    it('sizes the VML button to fit the label and its padding', () => {
+        const widthOf = (text: string) => {
+            const html = buttonHtml((block) => (block.text = text));
+            return Number(/width:(\d+)px;" arcsize/.exec(html)?.[1]);
+        };
+        // At least the horizontal padding plus about half an em per character.
+        expect(widthOf('Go')).toBeGreaterThanOrEqual(48 + 2 * 8);
+        expect(widthOf('Shop the summer sale')).toBeGreaterThan(widthOf('Shop now'));
+        expect(widthOf('Shop the summer sale')).toBeGreaterThanOrEqual(48 + 20 * 8);
+    });
+
+    it('makes a fully round button with a large radius', () => {
+        expect(buttonHtml((block) => (block.styles.borderRadius = 999))).toContain(
+            'arcsize="100%"',
+        );
+    });
+
+    it('leaves square buttons as plain HTML', () => {
+        const html = buttonHtml((block) => (block.styles.borderRadius = 0));
+        expect(html).not.toContain('v:roundrect');
+        expect(html).not.toContain('[if mso]><!--');
+        expect(html).not.toContain('<!--[if !mso]>');
+    });
+
+    it('omits the VML link when the button has none', () => {
+        const html = buttonHtml((block) => (block.href = ''));
+        const vml = html.slice(html.indexOf('<v:roundrect'), html.indexOf('</v:roundrect>'));
+        expect(vml).not.toContain('href=');
+    });
+});

@@ -42,12 +42,12 @@ describe('check()', () => {
         expect(check(documentWith(createTextBlock()), [GMAIL_DESKTOP])).toEqual([]);
     });
 
-    it('warns once per unsupported style per target, with the block as subject', () => {
-        const block = createButtonBlock();
-        const warnings = check(documentWith(block), [OUTLOOK_WINDOWS, GMAIL_DESKTOP]);
+    it('warns about each unsupported style, with the block as subject', () => {
+        const block = createImageBlock('https://example.com/photo.webp', '');
+        const warnings = check(documentWith(block), [OUTLOOK_WINDOWS]);
 
-        // Rounded corners are the only thing Outlook on Windows cannot show here.
-        expect(warnings.map((w) => w.property)).toEqual(['borderRadius']);
+        // WebP images are the only thing Outlook on Windows cannot show here.
+        expect(warnings.map((w) => w.property)).toEqual(['src']);
         expect(warnings[0]?.subject).toEqual({ type: 'block', id: block.id });
         expect(warnings[0]?.target).toBe(OUTLOOK_WINDOWS);
         expect(warnings[0]?.version).toBe('2019');
@@ -56,8 +56,9 @@ describe('check()', () => {
     it('checks every block in every column', () => {
         const doc = createEmptyDocument();
         const row = createRow(2);
-        row.columns[0]?.blocks.push(createButtonBlock());
-        row.columns[1]?.blocks.push(createButtonBlock(), createButtonBlock());
+        const webp = () => createImageBlock('https://example.com/photo.webp', '');
+        row.columns[0]?.blocks.push(webp());
+        row.columns[1]?.blocks.push(webp(), webp());
         doc.rows.push(row);
 
         const warnings = check(doc, [OUTLOOK_WINDOWS]);
@@ -114,8 +115,11 @@ describe('notes that do not apply to the exported values', () => {
     });
 
     it('never narrows down unsupported or unknown results', () => {
-        // Rounded corners are "n" in Outlook on Windows: the VML note has no rule and stays.
-        const [warning] = checkBlock(createButtonBlock(), [OUTLOOK_WINDOWS]);
+        // Rounded images are "n" in Outlook on Windows and have no workaround in the export.
+        const image = createImageBlock('https://example.com/a.png', '');
+        image.styles.borderRadius = 6;
+        const [warning] = checkBlock(image, [OUTLOOK_WINDOWS]);
+        expect(warning?.property).toBe('borderRadius');
         expect(warning?.level).toBe('n');
         expect(warning?.notes.join(' ')).toMatch(/VML/);
     });
@@ -163,13 +167,19 @@ describe('imageFormatFeature()', () => {
 });
 
 describe('button blocks', () => {
-    it('warns that Outlook on Windows draws square corners, with the VML hint', () => {
-        const warning = checkBlock(createButtonBlock(), [OUTLOOK_WINDOWS]).find(
+    it('does not warn about rounded corners where the export draws them in VML', () => {
+        const properties = checkBlock(createButtonBlock(), [
+            OUTLOOK_WINDOWS,
+            { family: 'outlook', platform: 'windows-mail' },
+        ]).map((w) => w.property);
+        expect(properties).not.toContain('borderRadius');
+    });
+
+    it('still warns about rounded corners in clients without the VML note', () => {
+        const warning = checkBlock(createButtonBlock(), [ORANGE_WEBMAIL]).find(
             (w) => w.property === 'borderRadius',
         );
-        expect(warning?.feature).toBe('css-border-radius');
         expect(warning?.level).toBe('n');
-        expect(warning?.notes.join(' ')).toMatch(/VML/);
     });
 
     it('only checks bold and border radius when they are used', () => {

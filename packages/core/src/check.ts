@@ -43,6 +43,12 @@ interface StyleCheck<Styles> {
     isSet: (styles: Styles) => boolean;
     /** The CSS values the export writes for this style, used to rule notes in or out. */
     values: (styles: Styles) => string[];
+    /**
+     * A Can I Email note describing a workaround the export already uses for this
+     * style. Where a client's result carries that note, the style renders fine
+     * and no warning is reported, whatever the support level.
+     */
+    workaround?: RegExp;
 }
 
 interface Padding {
@@ -166,6 +172,8 @@ const BUTTON_STYLE_CHECKS: StyleCheck<ButtonStyles>[] = [
         feature: 'css-border-radius',
         isSet: (s) => s.borderRadius > 0,
         values: (s) => [px(s.borderRadius)],
+        // Rounded buttons are also drawn in VML for the clients this note is attached to.
+        workaround: /VML/,
     },
     // The button's own padding is always there, so padding is always in use.
     {
@@ -387,8 +395,8 @@ function checkStyles<Styles>(
 ): CompatWarning[] {
     return checks
         .filter(({ isSet }) => isSet(styles))
-        .flatMap(({ property, feature, values }) =>
-            checkFeature(subject, property, feature, targets, values(styles)),
+        .flatMap(({ property, feature, values, workaround }) =>
+            checkFeature(subject, property, feature, targets, values(styles), workaround),
         );
 }
 
@@ -399,11 +407,13 @@ function checkFeature(
     feature: string,
     targets: readonly Target[],
     values: readonly string[] = [],
+    workaround?: RegExp,
 ): CompatWarning[] {
     const warnings: CompatWarning[] = [];
     for (const target of targets) {
         const details = supportDetails(feature, target.family, target.platform);
         if (!details || details.level === 'y') continue;
+        if (workaround && details.notes.some((note) => workaround.test(note))) continue;
         // Only partial support can be narrowed down by its notes; 'n' and 'u' always stand.
         const notes =
             details.level === 'a' ? relevantNotes(feature, details.notes, values) : details.notes;
