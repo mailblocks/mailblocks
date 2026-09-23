@@ -93,7 +93,6 @@ function sampleDocument(): EmailDocument {
     const doc = createEmptyDocument();
 
     const hero = createRow();
-    hero.styles.backgroundColor = '#ffffff';
     hero.styles.paddingTop = 20;
     hero.styles.paddingBottom = 20;
     const title = createTextBlock('<p><strong>Hello from mailblocks</strong></p>');
@@ -107,7 +106,6 @@ function sampleDocument(): EmailDocument {
     );
 
     const columns = createRow(2);
-    columns.styles.backgroundColor = '#ffffff';
     columns.columns[0]?.blocks.push(createTextBlock('<p>Left column.</p>'));
     columns.columns[1]?.blocks.push(createTextBlock('<p>Right column.</p>'));
 

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { createEmptyDocument, createRow, createTextBlock, type EmailDocument } from './model';
+import {
+    createEmptyDocument,
+    createRow,
+    createTextBlock,
+    type EmailDocument,
+    type TextBlock,
+} from './model';
 import {
     addBlock,
     addRow,
@@ -101,7 +107,7 @@ describe('updateBlock() / updateBlockStyles()', () => {
     it('replaces the block and shares everything else', () => {
         const { doc, right, a } = fixture();
         const next = updateBlock(doc, a.id, (block) => ({ ...block, html: '<p>A</p>' }));
-        expect(findBlock(next, a.id)?.block.html).toBe('<p>A</p>');
+        expect((findBlock(next, a.id)?.block as TextBlock).html).toBe('<p>A</p>');
         expect(a.html).toBe('<p>a</p>');
         expect(next.rows[0]?.columns[1]).toBe(right);
     });
@@ -109,7 +115,7 @@ describe('updateBlock() / updateBlockStyles()', () => {
     it('merges a partial style patch', () => {
         const { doc, a } = fixture();
         const next = updateBlockStyles(doc, a.id, { fontSize: 20, textAlign: 'center' });
-        const styles = findBlock(next, a.id)?.block.styles;
+        const styles = (findBlock(next, a.id)?.block as TextBlock).styles;
         expect(styles?.fontSize).toBe(20);
         expect(styles?.textAlign).toBe('center');
         expect(styles?.color).toBe(a.styles.color);

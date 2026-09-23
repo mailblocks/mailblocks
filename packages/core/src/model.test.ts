@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createEmptyDocument, createRow, createTextBlock } from './model';
+import { createEmptyDocument, createImageBlock, createRow, createTextBlock } from './model';
 
 describe('createEmptyDocument()', () => {
     it('creates a versioned document with no rows and sensible defaults', () => {
@@ -42,5 +42,21 @@ describe('createTextBlock()', () => {
 
     it('keeps the given html', () => {
         expect(createTextBlock('<p>Hello</p>').html).toBe('<p>Hello</p>');
+    });
+});
+
+describe('createImageBlock()', () => {
+    it('creates a centred image with no source by default', () => {
+        const block = createImageBlock();
+        expect(block.type).toBe('image');
+        expect(block.src).toBe('');
+        expect(block.styles.align).toBe('center');
+        expect(block.width).toBeUndefined();
+    });
+
+    it('keeps the given source and alt text', () => {
+        const block = createImageBlock('https://example.com/a.png', 'Logo');
+        expect(block.src).toBe('https://example.com/a.png');
+        expect(block.alt).toBe('Logo');
     });
 });

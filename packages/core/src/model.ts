@@ -19,6 +19,8 @@ export interface DocumentStyles {
     backgroundColor: string;
     /** Width of the content area in pixels. 600 is the email industry default. */
     contentWidth: number;
+    /** Background colour of the content area. Rows without their own colour show this. */
+    contentBackgroundColor: string;
     /** Font stack used by text that does not set its own. */
     fontFamily: string;
 }
@@ -42,8 +44,8 @@ export interface Column {
     blocks: Block[];
 }
 
-/** All block kinds. Only `text` exists for now; more will join this union. */
-export type Block = TextBlock;
+/** All block kinds, discriminated by `type`. */
+export type Block = TextBlock | ImageBlock;
 
 export interface TextBlock {
     id: string;
@@ -68,6 +70,29 @@ export interface TextStyles {
     paddingLeft: number;
 }
 
+export interface ImageBlock {
+    id: string;
+    type: 'image';
+    /** Absolute URL of the image. Email clients load it from there; nothing is embedded. */
+    src: string;
+    /** Shown while the image loads or when images are blocked, and read by screen readers. */
+    alt: string;
+    /** Link the image opens, if any. */
+    href?: string;
+    /** Rendered width in pixels. Leave unset to fill the column. */
+    width?: number;
+    styles: ImageStyles;
+}
+
+export interface ImageStyles {
+    align: 'left' | 'center' | 'right';
+    borderRadius: number;
+    paddingTop: number;
+    paddingRight: number;
+    paddingBottom: number;
+    paddingLeft: number;
+}
+
 export function createId(): string {
     return crypto.randomUUID();
 }
@@ -79,6 +104,7 @@ export function createEmptyDocument(): EmailDocument {
         styles: {
             backgroundColor: '#f4f4f4',
             contentWidth: 600,
+            contentBackgroundColor: '#ffffff',
             fontFamily: 'Arial, Helvetica, sans-serif',
         },
         rows: [],
@@ -108,6 +134,23 @@ export function createTextBlock(html = '<p></p>'): TextBlock {
             lineHeight: 1.5,
             color: '#000000',
             textAlign: 'left',
+            paddingTop: 10,
+            paddingRight: 25,
+            paddingBottom: 10,
+            paddingLeft: 25,
+        },
+    };
+}
+
+export function createImageBlock(src = '', alt = ''): ImageBlock {
+    return {
+        id: createId(),
+        type: 'image',
+        src,
+        alt,
+        styles: {
+            align: 'center',
+            borderRadius: 0,
             paddingTop: 10,
             paddingRight: 25,
             paddingBottom: 10,

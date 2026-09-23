@@ -78,10 +78,11 @@ export function updateBlockStyles<B extends Block>(
     blockId: string,
     styles: Partial<B['styles']>,
 ): EmailDocument {
-    return updateBlock(doc, blockId, (block) => ({
-        ...block,
-        styles: { ...block.styles, ...styles },
-    }));
+    return updateBlock(
+        doc,
+        blockId,
+        (block) => ({ ...block, styles: { ...block.styles, ...styles } }) as Block,
+    );
 }
 
 /**

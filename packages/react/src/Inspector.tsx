@@ -1,11 +1,15 @@
 import {
     checkBlock,
     removeBlock,
+    updateBlock,
     updateBlockStyles,
+    type Block,
     type BlockLocation,
     type CompatWarning,
     type EmailDocument,
+    type ImageBlock,
     type Target,
+    type TextBlock,
     type TextStyles,
 } from '@mailblocks/core';
 import type { ChangeEvent } from 'react';
@@ -16,12 +20,6 @@ interface InspectorProps {
     selected: BlockLocation | undefined;
     targets: Target[];
 }
-
-const LEVEL_LABEL: Record<CompatWarning['level'], string> = {
-    n: 'not supported',
-    a: 'partial',
-    u: 'unknown',
-};
 
 /** Style controls and compatibility warnings for the selected block. */
 export function Inspector({ doc, onChange, selected, targets }: InspectorProps) {
@@ -34,14 +32,37 @@ export function Inspector({ doc, onChange, selected, targets }: InspectorProps) 
     }
 
     const { block } = selected;
-    const s = block.styles;
-    const set = (patch: Partial<TextStyles>) => onChange(updateBlockStyles(doc, block.id, patch));
-    const number = (key: keyof TextStyles) => (event: ChangeEvent<HTMLInputElement>) =>
-        set({ [key]: Number(event.target.value) });
-    const warnings = checkBlock(block, targets);
 
     return (
         <aside className="mb-inspector">
+            {block.type === 'text' && <TextFields doc={doc} block={block} onChange={onChange} />}
+            {block.type === 'image' && <ImageFields doc={doc} block={block} onChange={onChange} />}
+            <button
+                type="button"
+                className="mb-remove"
+                onClick={() => onChange(removeBlock(doc, block.id))}
+            >
+                Remove block
+            </button>
+            <Warnings warnings={checkBlock(block, targets)} />
+        </aside>
+    );
+}
+
+// ---------------------------------------------------------------------------
+
+interface FieldsProps<B extends Block> {
+    doc: EmailDocument;
+    block: B;
+    onChange: (doc: EmailDocument) => void;
+}
+
+function TextFields({ doc, block, onChange }: FieldsProps<TextBlock>) {
+    const s = block.styles;
+    const set = (patch: Partial<TextStyles>) => onChange(updateBlockStyles(doc, block.id, patch));
+
+    return (
+        <>
             <h3>Text</h3>
             <label>
                 Font family
@@ -54,7 +75,12 @@ export function Inspector({ doc, onChange, selected, targets }: InspectorProps) 
             </label>
             <label>
                 Font size
-                <input type="number" min={8} value={s.fontSize} onChange={number('fontSize')} />
+                <input
+                    type="number"
+                    min={8}
+                    value={s.fontSize}
+                    onChange={numeric((fontSize) => set({ fontSize }))}
+                />
             </label>
             <label>
                 Line height
@@ -63,7 +89,7 @@ export function Inspector({ doc, onChange, selected, targets }: InspectorProps) 
                     min={0.8}
                     step={0.1}
                     value={s.lineHeight}
-                    onChange={number('lineHeight')}
+                    onChange={numeric((lineHeight) => set({ lineHeight }))}
                 />
             </label>
             <label>
@@ -87,53 +113,133 @@ export function Inspector({ doc, onChange, selected, targets }: InspectorProps) 
                     <option value="right">Right</option>
                 </select>
             </label>
-            <fieldset>
-                <legend>Padding</legend>
-                <label>
-                    Top
-                    <input
-                        type="number"
-                        min={0}
-                        value={s.paddingTop}
-                        onChange={number('paddingTop')}
-                    />
-                </label>
-                <label>
-                    Right
-                    <input
-                        type="number"
-                        min={0}
-                        value={s.paddingRight}
-                        onChange={number('paddingRight')}
-                    />
-                </label>
-                <label>
-                    Bottom
-                    <input
-                        type="number"
-                        min={0}
-                        value={s.paddingBottom}
-                        onChange={number('paddingBottom')}
-                    />
-                </label>
-                <label>
-                    Left
-                    <input
-                        type="number"
-                        min={0}
-                        value={s.paddingLeft}
-                        onChange={number('paddingLeft')}
-                    />
-                </label>
-            </fieldset>
-            <button
-                type="button"
-                className="mb-remove"
-                onClick={() => onChange(removeBlock(doc, block.id))}
-            >
-                Remove block
-            </button>
+            <PaddingFields styles={s} onChange={set} />
+        </>
+    );
+}
 
+function ImageFields({ doc, block, onChange }: FieldsProps<ImageBlock>) {
+    const s = block.styles;
+    const set = (patch: Partial<ImageBlock['styles']>) =>
+        onChange(updateBlockStyles(doc, block.id, patch));
+    const setField = (patch: Partial<Omit<ImageBlock, 'id' | 'type' | 'styles'>>) =>
+        onChange(updateBlock(doc, block.id, (b) => ({ ...(b as ImageBlock), ...patch })));
+
+    return (
+        <>
+            <h3>Image</h3>
+            <label>
+                Image URL
+                <input
+                    type="url"
+                    value={block.src}
+                    placeholder="https://"
+                    onChange={(event) => setField({ src: event.target.value })}
+                />
+            </label>
+            <label>
+                Alt text
+                <input
+                    type="text"
+                    value={block.alt}
+                    onChange={(event) => setField({ alt: event.target.value })}
+                />
+            </label>
+            <label>
+                Link
+                <input
+                    type="url"
+                    value={block.href ?? ''}
+                    placeholder="https://"
+                    onChange={(event) => setField({ href: event.target.value || undefined })}
+                />
+            </label>
+            <label>
+                Width
+                <input
+                    type="number"
+                    min={1}
+                    value={block.width ?? ''}
+                    placeholder="auto"
+                    onChange={(event) =>
+                        setField({
+                            width: event.target.value ? Number(event.target.value) : undefined,
+                        })
+                    }
+                />
+            </label>
+            <label>
+                Align
+                <select
+                    value={s.align}
+                    onChange={(event) =>
+                        set({ align: event.target.value as ImageBlock['styles']['align'] })
+                    }
+                >
+                    <option value="left">Left</option>
+                    <option value="center">Center</option>
+                    <option value="right">Right</option>
+                </select>
+            </label>
+            <label>
+                Border radius
+                <input
+                    type="number"
+                    min={0}
+                    value={s.borderRadius}
+                    onChange={numeric((borderRadius) => set({ borderRadius }))}
+                />
+            </label>
+            <PaddingFields styles={s} onChange={set} />
+        </>
+    );
+}
+
+interface Padding {
+    paddingTop: number;
+    paddingRight: number;
+    paddingBottom: number;
+    paddingLeft: number;
+}
+
+function PaddingFields({
+    styles,
+    onChange,
+}: {
+    styles: Padding;
+    onChange: (patch: Partial<Padding>) => void;
+}) {
+    const sides = ['Top', 'Right', 'Bottom', 'Left'] as const;
+    return (
+        <fieldset>
+            <legend>Padding</legend>
+            {sides.map((side) => {
+                const key = `padding${side}` as const;
+                return (
+                    <label key={side}>
+                        {side}
+                        <input
+                            type="number"
+                            min={0}
+                            value={styles[key]}
+                            onChange={numeric((value) => onChange({ [key]: value }))}
+                        />
+                    </label>
+                );
+            })}
+        </fieldset>
+    );
+}
+
+const LEVEL_LABEL: Record<CompatWarning['level'], string> = {
+    n: 'not supported',
+    a: 'partial',
+    u: 'unknown',
+};
+
+function Warnings({ warnings }: { warnings: CompatWarning[] }) {
+    return (
+        <>
             <h3>
                 Warnings <span className="mb-muted">({warnings.length})</span>
             </h3>
@@ -161,6 +267,10 @@ export function Inspector({ doc, onChange, selected, targets }: InspectorProps) 
                     ))}
                 </ul>
             )}
-        </aside>
+        </>
     );
+}
+
+function numeric(apply: (value: number) => void) {
+    return (event: ChangeEvent<HTMLInputElement>) => apply(Number(event.target.value));
 }
