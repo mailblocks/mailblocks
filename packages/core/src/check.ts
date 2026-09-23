@@ -41,14 +41,46 @@ interface StyleCheck<Styles> {
     feature: string;
     /** Whether the style is actually in use, so untouched defaults do not warn. */
     isSet: (styles: Styles) => boolean;
+    /** The CSS values the export writes for this style, used to rule notes in or out. */
+    values: (styles: Styles) => string[];
+}
+
+interface Padding {
+    paddingTop: number;
+    paddingRight: number;
+    paddingBottom: number;
+    paddingLeft: number;
+}
+
+const SIDES: (keyof Padding)[] = ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft'];
+
+const px = (value: number) => `${value}px`;
+
+function paddingCheck<S extends Padding>(): StyleCheck<S> {
+    return {
+        property: 'padding',
+        feature: 'css-padding',
+        isSet: (s) => SIDES.some((side) => s[side] > 0),
+        values: (s) => SIDES.map((side) => px(s[side])),
+    };
 }
 
 // Content width is not checked: the exporter sets it as an HTML width
 // attribute as well, which is what Outlook relies on.
 const DOCUMENT_STYLE_CHECKS: StyleCheck<DocumentStyles>[] = [
     // One check covers both the email and the content background.
-    { property: 'backgroundColor', feature: 'css-background-color', isSet: () => true },
-    { property: 'fontFamily', feature: 'css-font', isSet: () => true },
+    {
+        property: 'backgroundColor',
+        feature: 'css-background-color',
+        isSet: () => true,
+        values: (s) => [s.backgroundColor, s.contentBackgroundColor],
+    },
+    {
+        property: 'fontFamily',
+        feature: 'css-font',
+        isSet: () => true,
+        values: (s) => [s.fontFamily],
+    },
 ];
 
 const ROW_STYLE_CHECKS: StyleCheck<RowStyles>[] = [
@@ -56,53 +88,216 @@ const ROW_STYLE_CHECKS: StyleCheck<RowStyles>[] = [
         property: 'backgroundColor',
         feature: 'css-background-color',
         isSet: (s) => s.backgroundColor !== undefined,
+        values: (s) => [s.backgroundColor ?? ''],
     },
     {
         property: 'padding',
         feature: 'css-padding',
         isSet: (s) => s.paddingTop + s.paddingBottom > 0,
+        values: (s) => [px(s.paddingTop), px(s.paddingBottom)],
     },
 ];
 
 const TEXT_STYLE_CHECKS: StyleCheck<TextStyles>[] = [
-    { property: 'fontFamily', feature: 'css-font', isSet: (s) => s.fontFamily !== undefined },
-    { property: 'fontSize', feature: 'css-font-size', isSet: () => true },
-    { property: 'lineHeight', feature: 'css-line-height', isSet: () => true },
-    { property: 'textAlign', feature: 'css-text-align', isSet: (s) => s.textAlign !== 'left' },
     {
-        property: 'padding',
-        feature: 'css-padding',
-        isSet: (s) => s.paddingTop + s.paddingRight + s.paddingBottom + s.paddingLeft > 0,
+        property: 'fontFamily',
+        feature: 'css-font',
+        isSet: (s) => s.fontFamily !== undefined,
+        values: (s) => [s.fontFamily ?? ''],
     },
+    {
+        property: 'fontSize',
+        feature: 'css-font-size',
+        isSet: () => true,
+        values: (s) => [px(s.fontSize)],
+    },
+    {
+        property: 'lineHeight',
+        feature: 'css-line-height',
+        isSet: () => true,
+        values: (s) => [px(Math.round(s.fontSize * s.lineHeight))],
+    },
+    {
+        property: 'textAlign',
+        feature: 'css-text-align',
+        isSet: (s) => s.textAlign !== 'left',
+        values: (s) => [s.textAlign],
+    },
+    paddingCheck(),
 ];
 
 const IMAGE_STYLE_CHECKS: StyleCheck<ImageStyles>[] = [
-    { property: 'borderRadius', feature: 'css-border-radius', isSet: (s) => s.borderRadius > 0 },
     {
-        property: 'padding',
-        feature: 'css-padding',
-        isSet: (s) => s.paddingTop + s.paddingRight + s.paddingBottom + s.paddingLeft > 0,
+        property: 'borderRadius',
+        feature: 'css-border-radius',
+        isSet: (s) => s.borderRadius > 0,
+        values: (s) => [px(s.borderRadius)],
     },
+    paddingCheck(),
 ];
 
 const BUTTON_STYLE_CHECKS: StyleCheck<ButtonStyles>[] = [
-    { property: 'backgroundColor', feature: 'css-background-color', isSet: () => true },
-    { property: 'fontFamily', feature: 'css-font', isSet: (s) => s.fontFamily !== undefined },
-    { property: 'fontSize', feature: 'css-font-size', isSet: () => true },
-    { property: 'bold', feature: 'css-font-weight', isSet: (s) => s.bold },
-    { property: 'borderRadius', feature: 'css-border-radius', isSet: (s) => s.borderRadius > 0 },
+    {
+        property: 'backgroundColor',
+        feature: 'css-background-color',
+        isSet: () => true,
+        values: (s) => [s.backgroundColor],
+    },
+    {
+        property: 'fontFamily',
+        feature: 'css-font',
+        isSet: (s) => s.fontFamily !== undefined,
+        values: (s) => [s.fontFamily ?? ''],
+    },
+    {
+        property: 'fontSize',
+        feature: 'css-font-size',
+        isSet: () => true,
+        values: (s) => [px(s.fontSize)],
+    },
+    {
+        property: 'bold',
+        feature: 'css-font-weight',
+        isSet: (s) => s.bold,
+        values: () => ['bold'],
+    },
+    {
+        property: 'borderRadius',
+        feature: 'css-border-radius',
+        isSet: (s) => s.borderRadius > 0,
+        values: (s) => [px(s.borderRadius)],
+    },
     // The button's own padding is always there, so padding is always in use.
-    { property: 'padding', feature: 'css-padding', isSet: () => true },
-];
-
-const DIVIDER_STYLE_CHECKS: StyleCheck<DividerStyles>[] = [
-    { property: 'thickness', feature: 'css-border', isSet: (s) => s.thickness > 0 },
     {
         property: 'padding',
         feature: 'css-padding',
-        isSet: (s) => s.paddingTop + s.paddingRight + s.paddingBottom + s.paddingLeft > 0,
+        isSet: () => true,
+        values: (s) => [
+            px(s.innerPaddingY),
+            px(s.innerPaddingX),
+            ...SIDES.map((side) => px(s[side])),
+        ],
     },
 ];
+
+const DIVIDER_STYLE_CHECKS: StyleCheck<DividerStyles>[] = [
+    {
+        property: 'thickness',
+        feature: 'css-border',
+        isSet: (s) => s.thickness > 0,
+        values: (s) => [`${px(s.thickness)} ${s.lineStyle} ${s.color}`],
+    },
+    paddingCheck(),
+];
+
+/**
+ * When a client only partly supports a feature, Can I Email explains why in
+ * notes. Many notes are about values the export never writes, or problems the
+ * export already works around. Each rule recognises one note by its text and
+ * says whether it applies to the values actually written. Notes without a rule
+ * are always kept, so a reworded note in new data shows up again rather than
+ * being hidden.
+ */
+interface NoteRule {
+    feature: string;
+    note: RegExp;
+    /** Omitted when the export always avoids the problem, so the note never applies. */
+    appliesTo?: (values: readonly string[]) => boolean;
+}
+
+/** The 16 colour keywords of CSS Level 1. */
+const CSS1_COLOR_KEYWORDS = new Set([
+    'aqua',
+    'black',
+    'blue',
+    'fuchsia',
+    'gray',
+    'green',
+    'lime',
+    'maroon',
+    'navy',
+    'olive',
+    'purple',
+    'red',
+    'silver',
+    'teal',
+    'white',
+    'yellow',
+]);
+
+const NOTE_RULES: NoteRule[] = [
+    {
+        feature: 'css-text-align',
+        note: /`start` and `end`/,
+        appliesTo: (values) => values.some((v) => v === 'start' || v === 'end'),
+    },
+    {
+        feature: 'css-text-align',
+        note: /match-parent/,
+        appliesTo: (values) => values.some((v) => v.endsWith('match-parent')),
+    },
+    {
+        feature: 'css-background-color',
+        note: /color keywords from CSS Level 1/,
+        appliesTo: (values) => values.some((v) => !CSS1_COLOR_KEYWORDS.has(v.trim().toLowerCase())),
+    },
+    {
+        feature: 'css-font-size',
+        note: /`rem` values/,
+        appliesTo: (values) => values.some((v) => v.endsWith('rem')),
+    },
+    {
+        feature: 'css-font-size',
+        note: /`relative` and `percentage`/,
+        appliesTo: (values) => values.some((v) => v.endsWith('%') || /^(smaller|larger)$/.test(v)),
+    },
+    {
+        feature: 'css-font-weight',
+        note: /`<number>` values/,
+        appliesTo: (values) => values.some((v) => /^\d+$/.test(v.trim())),
+    },
+    // Pixel line heights are always followed by mso-line-height-rule:exactly.
+    { feature: 'css-line-height', note: /mso-line-height-rule:exactly/ },
+    {
+        feature: 'css-line-height',
+        note: /`normal` value/,
+        appliesTo: (values) => values.includes('normal'),
+    },
+    // Padding is only ever written on table cells...
+    { feature: 'css-padding', note: /Only supported on table cells/ },
+    // ...and every padded cell is the only cell in its table row.
+    { feature: 'css-padding', note: /same for all cells of a same row/ },
+    {
+        feature: 'css-border',
+        note: /bigger than 8px/,
+        appliesTo: (values) => values.some((v) => parseFloat(v) > 8),
+    },
+    // Borders are drawn on tables, never on <p> or <div>.
+    { feature: 'css-border', note: /`<p>` or a `<div>`/ },
+    {
+        feature: 'css-border-radius',
+        note: /slash `\/` notation/,
+        appliesTo: (values) => values.some((v) => v.includes('/')),
+    },
+];
+
+/**
+ * The notes of a partial-support result that apply to `values`. `undefined`
+ * when there were notes and none of them apply, which means the partial
+ * support does not affect this document.
+ */
+function relevantNotes(
+    feature: string,
+    notes: string[],
+    values: readonly string[],
+): string[] | undefined {
+    if (notes.length === 0) return notes;
+    const kept = notes.filter((note) => {
+        const rule = NOTE_RULES.find((r) => r.feature === feature && r.note.test(note));
+        return !rule || (rule.appliesTo?.(values) ?? false);
+    });
+    return kept.length > 0 ? kept : undefined;
+}
 
 /** Can I Email feature slug per image file extension. */
 const IMAGE_FORMAT_FEATURES: Record<string, string> = {
@@ -192,7 +387,9 @@ function checkStyles<Styles>(
 ): CompatWarning[] {
     return checks
         .filter(({ isSet }) => isSet(styles))
-        .flatMap(({ property, feature }) => checkFeature(subject, property, feature, targets));
+        .flatMap(({ property, feature, values }) =>
+            checkFeature(subject, property, feature, targets, values(styles)),
+        );
 }
 
 /** Warnings for one Can I Email feature across the targets. */
@@ -201,11 +398,16 @@ function checkFeature(
     property: string,
     feature: string,
     targets: readonly Target[],
+    values: readonly string[] = [],
 ): CompatWarning[] {
     const warnings: CompatWarning[] = [];
     for (const target of targets) {
         const details = supportDetails(feature, target.family, target.platform);
         if (!details || details.level === 'y') continue;
+        // Only partial support can be narrowed down by its notes; 'n' and 'u' always stand.
+        const notes =
+            details.level === 'a' ? relevantNotes(feature, details.notes, values) : details.notes;
+        if (!notes) continue;
         warnings.push({
             subject,
             property,
@@ -213,7 +415,7 @@ function checkFeature(
             target,
             level: details.level,
             version: details.version,
-            notes: details.notes,
+            notes,
         });
     }
     return warnings;

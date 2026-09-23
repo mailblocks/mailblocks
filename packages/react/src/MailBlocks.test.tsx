@@ -85,13 +85,28 @@ describe('<MailBlocks />', () => {
             <MailBlocks
                 document={doc}
                 onChange={vi.fn()}
+                targets={[{ family: 'orange', platform: 'desktop-webmail' }]}
+            />,
+        );
+
+        await userEvent.click(screen.getByText('Hello'));
+        expect(screen.getAllByText('unknown').length).toBeGreaterThan(0);
+        expect(screen.getByText('fontSize')).toBeTruthy();
+    });
+
+    it('says so when the selected block is safe for every target', async () => {
+        // Outlook's partial support for these styles is about values the export never writes.
+        const doc = documentWith(createTextBlock('<p>Hello</p>'));
+        render(
+            <MailBlocks
+                document={doc}
+                onChange={vi.fn()}
                 targets={[{ family: 'outlook', platform: 'windows' }]}
             />,
         );
 
         await userEvent.click(screen.getByText('Hello'));
-        expect(screen.getAllByText('partial').length).toBeGreaterThan(0);
-        expect(screen.getByText('lineHeight')).toBeTruthy();
+        expect(screen.getByText('No warnings for the selected targets.')).toBeTruthy();
     });
 });
 
@@ -358,18 +373,18 @@ describe('<MailBlocks /> email and row settings', () => {
 describe('<MailBlocks /> warnings for rows and the email', () => {
     it("lists the selected row's own warnings", async () => {
         const doc = documentWith(createTextBlock('<p>Hello</p>'));
-        doc.rows[0]!.styles.paddingTop = 20;
+        doc.rows[0]!.styles.backgroundColor = '#ffffff';
         const { container } = render(
             <MailBlocks
                 document={doc}
                 onChange={vi.fn()}
-                targets={[{ family: 'outlook', platform: 'windows' }]}
+                targets={[{ family: 'orange', platform: 'desktop-webmail' }]}
             />,
         );
 
         await userEvent.click(container.querySelector('.mb-row') as HTMLElement);
-        expect(screen.getByText('padding')).toBeTruthy();
-        expect(screen.getByText(/same row/)).toBeTruthy();
+        expect(screen.getByText('backgroundColor')).toBeTruthy();
+        expect(screen.getByText(/color keywords/)).toBeTruthy();
     });
 
     it("lists the email's warnings when nothing is selected", () => {
