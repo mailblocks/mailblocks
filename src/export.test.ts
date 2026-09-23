@@ -44,7 +44,7 @@ describe('exportHtml()', () => {
         expect(html).toContain('padding:10px 25px 10px 25px;');
         expect(html).toContain('font-size:16px;');
         // 16px * 1.5 line height, rounded to whole pixels for Outlook
-        expect(html).toContain('line-height:24px;');
+        expect(html).toContain('line-height:24px;mso-line-height-rule:exactly;');
         expect(html).toContain('color:#000000;');
         expect(html).toContain('align="left"');
         expect(html).toContain('text-align:left;');
