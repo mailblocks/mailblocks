@@ -7,18 +7,31 @@ half of it does not render. mailblocks checks every style in the document agains
 [Can I Email](https://www.caniemail.com) data for the clients you care about, tells you what is
 not supported and why, and exports table-based HTML that those clients can actually render.
 
-> **Status:** early development. The core library works and is tested; there is no visual editor
-> yet and nothing is published to npm. APIs will change until 1.0.
+> **Status:** early development. The core library and a first React editor work and are tested;
+> nothing is published to npm yet. APIs will change until 1.0.
 
 ## What works today
 
-- **Document model** – rows, columns and blocks, with a text block as the first block type.
+- **Document model** – rows, columns and blocks. Text and image blocks so far.
 - **Compatibility check** – `check(doc, targets)` returns a warning for every style a target
   client does not fully support, with Can I Email's footnotes explaining what exactly is missing.
+  Image formats are checked too, so a `.webp` or `.svg` warns for clients that cannot show it.
 - **HTML export** – `exportHtml(doc)` renders nested tables with inline styles, pixel units and
   the Outlook-specific hints that keep it from mangling the result.
-- **Playground** – a local page to edit a document as JSON and see the export and the warnings
-  update live.
+- **React editor** – `<MailBlocks>` lets you type into text blocks in place, add text and image
+  blocks and rows, style the selected block in an inspector that lists its warnings, move blocks
+  up and down, and undo or redo every change.
+
+Neither package has runtime dependencies beyond React for the editor.
+
+## Packages
+
+| Package                                 | What                                                          |
+| --------------------------------------- | ------------------------------------------------------------- |
+| [`@mailblocks/core`](./packages/core)   | Document model, operations, undo history, checks, HTML export |
+| [`@mailblocks/react`](./packages/react) | The `<MailBlocks>` editor component                           |
+
+## Using the core
 
 ```ts
 import {
@@ -47,13 +60,42 @@ exportHtml(doc);
 // '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" ...'
 ```
 
+## Using the React editor
+
+```tsx
+import { createEmptyDocument, exportHtml } from '@mailblocks/core';
+import { MailBlocks } from '@mailblocks/react';
+import '@mailblocks/react/styles.css';
+import { useState } from 'react';
+
+export function Designer() {
+    const [doc, setDoc] = useState(createEmptyDocument);
+    return (
+        <MailBlocks
+            document={doc}
+            onChange={setDoc}
+            targets={[
+                { family: 'gmail', platform: 'desktop-webmail' },
+                { family: 'outlook', platform: 'windows' },
+            ]}
+        />
+    );
+}
+
+// Whenever you need the email: exportHtml(doc)
+```
+
+The component is controlled: it never changes `document`, it calls `onChange` with a new one.
+Undo history lives inside it and starts over when you pass a document it did not produce.
+
 ## Try it
 
 ```sh
 git clone https://github.com/mailblocks/mailblocks.git
 cd mailblocks
 pnpm install
-pnpm dev          # playground on http://localhost:5173
+pnpm dev:react    # React editor on http://localhost:5174
+pnpm dev          # core playground (document as JSON) on http://localhost:5173
 pnpm test
 ```
 
@@ -62,16 +104,19 @@ Requires Node 22 and pnpm 11.
 ## Client support data
 
 Support levels come from [Can I Email](https://www.caniemail.com) by Rémi Parmentier, used under
-the MIT license (see [`packages/core/data/LICENSE-caniemail`](./packages/core/data/LICENSE-caniemail)). A copy of its API
-data lives in `packages/core/data/caniemail.json`; `pnpm data:build` turns it into the compact table the
-library uses, keeping only the latest tested version of each client. Update the JSON and rerun
-the script to pick up new data.
+the MIT license (see
+[`packages/core/data/LICENSE-caniemail`](./packages/core/data/LICENSE-caniemail)). A copy of its
+API data lives in `packages/core/data/caniemail.json`; `pnpm data:build` turns it into the compact
+table the library uses, keeping only the latest tested version of each client. Update the JSON
+and rerun the script to pick up new data.
 
 ## Roadmap
 
-1. More block types: image, button, divider, spacer.
+1. More block types: button, divider, spacer.
 2. Value-aware warnings, so a `text-align: center` is not flagged for a note about `start`.
-3. The visual editor, as framework packages on top of this core.
+3. Document and row settings in the editor: colours, content width, column layouts.
+4. An Angular package on top of the same core.
+5. A first release on npm.
 
 ## Contributing
 
