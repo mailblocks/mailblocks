@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { check, checkBlock, imageFormatFeature, type Target } from './check';
 import {
     createButtonBlock,
+    createDividerBlock,
     createEmptyDocument,
     createImageBlock,
     createRow,
+    createSpacerBlock,
     createTextBlock,
     type EmailDocument,
 } from './model';
@@ -147,5 +149,24 @@ describe('button blocks', () => {
 
     it('has nothing to report for Gmail on the web', () => {
         expect(checkBlock(createButtonBlock(), [GMAIL_DESKTOP])).toEqual([]);
+    });
+});
+
+describe('divider and spacer blocks', () => {
+    it('warns about divider borders in Outlook on Windows, with the 8px note', () => {
+        const warning = checkBlock(createDividerBlock(), [OUTLOOK_WINDOWS]).find(
+            (w) => w.property === 'thickness',
+        );
+        expect(warning?.feature).toBe('css-border');
+        expect(warning?.level).toBe('a');
+        expect(warning?.notes.join(' ')).toMatch(/8px/);
+    });
+
+    it('has nothing to report for dividers in Gmail on the web', () => {
+        expect(checkBlock(createDividerBlock(), [GMAIL_DESKTOP])).toEqual([]);
+    });
+
+    it('never warns about spacers', () => {
+        expect(checkBlock(createSpacerBlock(), [OUTLOOK_WINDOWS, GMAIL_DESKTOP])).toEqual([]);
     });
 });

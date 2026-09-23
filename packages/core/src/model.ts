@@ -45,7 +45,7 @@ export interface Column {
 }
 
 /** All block kinds, discriminated by `type`. */
-export type Block = TextBlock | ImageBlock | ButtonBlock;
+export type Block = TextBlock | ImageBlock | ButtonBlock | DividerBlock | SpacerBlock;
 
 export interface TextBlock {
     id: string;
@@ -119,6 +119,39 @@ export interface ButtonStyles {
     paddingRight: number;
     paddingBottom: number;
     paddingLeft: number;
+}
+
+/** A horizontal line. */
+export interface DividerBlock {
+    id: string;
+    type: 'divider';
+    styles: DividerStyles;
+}
+
+export interface DividerStyles {
+    color: string;
+    /** Line thickness in pixels. */
+    thickness: number;
+    lineStyle: 'solid' | 'dashed' | 'dotted';
+    /** Share of the available width in percent. */
+    width: number;
+    align: 'left' | 'center' | 'right';
+    paddingTop: number;
+    paddingRight: number;
+    paddingBottom: number;
+    paddingLeft: number;
+}
+
+/** Empty vertical space. */
+export interface SpacerBlock {
+    id: string;
+    type: 'spacer';
+    styles: SpacerStyles;
+}
+
+export interface SpacerStyles {
+    /** Height in pixels. */
+    height: number;
 }
 
 export function createId(): string {
@@ -208,4 +241,26 @@ export function createButtonBlock(text = 'Button', href = ''): ButtonBlock {
             paddingLeft: 25,
         },
     };
+}
+
+export function createDividerBlock(): DividerBlock {
+    return {
+        id: createId(),
+        type: 'divider',
+        styles: {
+            color: '#d1d5db',
+            thickness: 1,
+            lineStyle: 'solid',
+            width: 100,
+            align: 'center',
+            paddingTop: 10,
+            paddingRight: 25,
+            paddingBottom: 10,
+            paddingLeft: 25,
+        },
+    };
+}
+
+export function createSpacerBlock(height = 24): SpacerBlock {
+    return { id: createId(), type: 'spacer', styles: { height } };
 }

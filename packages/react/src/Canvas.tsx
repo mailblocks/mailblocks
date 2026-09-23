@@ -2,15 +2,19 @@ import {
     addBlock,
     addRow,
     createButtonBlock,
+    createDividerBlock,
     createImageBlock,
     createRow,
+    createSpacerBlock,
     createTextBlock,
     updateBlock,
     type Block,
     type EmailDocument,
 } from '@mailblocks/core';
 import { ButtonBlockView } from './ButtonBlockView';
+import { DividerBlockView } from './DividerBlockView';
 import { ImageBlockView } from './ImageBlockView';
+import { SpacerBlockView } from './SpacerBlockView';
 import { TextBlockView } from './TextBlockView';
 
 interface CanvasProps {
@@ -97,6 +101,26 @@ export function Canvas({ doc, onChange, selectedBlockId, onSelect }: CanvasProps
                                     >
                                         + Button
                                     </button>
+                                    <button
+                                        type="button"
+                                        className="mb-add"
+                                        onClick={(event) => {
+                                            event.stopPropagation();
+                                            add(column.id, createDividerBlock());
+                                        }}
+                                    >
+                                        + Divider
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="mb-add"
+                                        onClick={(event) => {
+                                            event.stopPropagation();
+                                            add(column.id, createSpacerBlock());
+                                        }}
+                                    >
+                                        + Spacer
+                                    </button>
                                 </div>
                             </div>
                         ))}
@@ -151,5 +175,9 @@ function BlockView({ block, selected, onSelect, onChange }: BlockViewProps) {
             return <ImageBlockView block={block} selected={selected} onSelect={onSelect} />;
         case 'button':
             return <ButtonBlockView block={block} selected={selected} onSelect={onSelect} />;
+        case 'divider':
+            return <DividerBlockView block={block} selected={selected} onSelect={onSelect} />;
+        case 'spacer':
+            return <SpacerBlockView block={block} selected={selected} onSelect={onSelect} />;
     }
 }

@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
     createButtonBlock,
+    createDividerBlock,
     createEmptyDocument,
     createImageBlock,
     createRow,
+    createSpacerBlock,
     createTextBlock,
 } from './model';
 
@@ -82,5 +84,22 @@ describe('createButtonBlock()', () => {
         const block = createButtonBlock('Buy now', 'https://example.com');
         expect(block.text).toBe('Buy now');
         expect(block.href).toBe('https://example.com');
+    });
+});
+
+describe('createDividerBlock()', () => {
+    it('creates a thin, full-width, solid grey line', () => {
+        const block = createDividerBlock();
+        expect(block.type).toBe('divider');
+        expect(block.styles.thickness).toBe(1);
+        expect(block.styles.lineStyle).toBe('solid');
+        expect(block.styles.width).toBe(100);
+    });
+});
+
+describe('createSpacerBlock()', () => {
+    it('defaults to 24 pixels and keeps a given height', () => {
+        expect(createSpacerBlock().styles.height).toBe(24);
+        expect(createSpacerBlock(40).styles.height).toBe(40);
     });
 });
