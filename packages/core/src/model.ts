@@ -45,7 +45,7 @@ export interface Column {
 }
 
 /** All block kinds, discriminated by `type`. */
-export type Block = TextBlock | ImageBlock;
+export type Block = TextBlock | ImageBlock | ButtonBlock;
 
 export interface TextBlock {
     id: string;
@@ -87,6 +87,34 @@ export interface ImageBlock {
 export interface ImageStyles {
     align: 'left' | 'center' | 'right';
     borderRadius: number;
+    paddingTop: number;
+    paddingRight: number;
+    paddingBottom: number;
+    paddingLeft: number;
+}
+
+export interface ButtonBlock {
+    id: string;
+    type: 'button';
+    /** The label, as plain text. */
+    text: string;
+    /** Where the button links to. */
+    href: string;
+    styles: ButtonStyles;
+}
+
+export interface ButtonStyles {
+    align: 'left' | 'center' | 'right';
+    backgroundColor: string;
+    color: string;
+    fontFamily?: string;
+    fontSize: number;
+    bold: boolean;
+    borderRadius: number;
+    /** Space between the label and the top and bottom edges of the button. */
+    innerPaddingY: number;
+    /** Space between the label and the left and right edges of the button. */
+    innerPaddingX: number;
     paddingTop: number;
     paddingRight: number;
     paddingBottom: number;
@@ -151,6 +179,29 @@ export function createImageBlock(src = '', alt = ''): ImageBlock {
         styles: {
             align: 'center',
             borderRadius: 0,
+            paddingTop: 10,
+            paddingRight: 25,
+            paddingBottom: 10,
+            paddingLeft: 25,
+        },
+    };
+}
+
+export function createButtonBlock(text = 'Button', href = ''): ButtonBlock {
+    return {
+        id: createId(),
+        type: 'button',
+        text,
+        href,
+        styles: {
+            align: 'center',
+            backgroundColor: '#2563eb',
+            color: '#ffffff',
+            fontSize: 16,
+            bold: true,
+            borderRadius: 4,
+            innerPaddingY: 12,
+            innerPaddingX: 24,
             paddingTop: 10,
             paddingRight: 25,
             paddingBottom: 10,

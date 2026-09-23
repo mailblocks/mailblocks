@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { createEmptyDocument, createImageBlock, createRow, createTextBlock } from './model';
+import {
+    createButtonBlock,
+    createEmptyDocument,
+    createImageBlock,
+    createRow,
+    createTextBlock,
+} from './model';
 
 describe('createEmptyDocument()', () => {
     it('creates a versioned document with no rows and sensible defaults', () => {
@@ -58,5 +64,23 @@ describe('createImageBlock()', () => {
         const block = createImageBlock('https://example.com/a.png', 'Logo');
         expect(block.src).toBe('https://example.com/a.png');
         expect(block.alt).toBe('Logo');
+    });
+});
+
+describe('createButtonBlock()', () => {
+    it('creates a centred, bold, rounded button with a label and no link', () => {
+        const block = createButtonBlock();
+        expect(block.type).toBe('button');
+        expect(block.text).toBe('Button');
+        expect(block.href).toBe('');
+        expect(block.styles.align).toBe('center');
+        expect(block.styles.bold).toBe(true);
+        expect(block.styles.borderRadius).toBeGreaterThan(0);
+    });
+
+    it('keeps the given label and link', () => {
+        const block = createButtonBlock('Buy now', 'https://example.com');
+        expect(block.text).toBe('Buy now');
+        expect(block.href).toBe('https://example.com');
     });
 });

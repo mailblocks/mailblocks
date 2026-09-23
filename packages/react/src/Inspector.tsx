@@ -6,6 +6,7 @@ import {
     updateBlockStyles,
     type Block,
     type BlockLocation,
+    type ButtonBlock,
     type CompatWarning,
     type EmailDocument,
     type ImageBlock,
@@ -40,6 +41,9 @@ export function Inspector({ doc, onChange, selected, targets }: InspectorProps) 
         <aside className="mb-inspector">
             {block.type === 'text' && <TextFields doc={doc} block={block} onChange={onChange} />}
             {block.type === 'image' && <ImageFields doc={doc} block={block} onChange={onChange} />}
+            {block.type === 'button' && (
+                <ButtonFields doc={doc} block={block} onChange={onChange} />
+            )}
             <div className="mb-block-actions">
                 <button type="button" disabled={index === 0} onClick={() => move(index - 1)}>
                     Move up
@@ -214,6 +218,126 @@ function ImageFields({ doc, block, onChange }: FieldsProps<ImageBlock>) {
     );
 }
 
+function ButtonFields({ doc, block, onChange }: FieldsProps<ButtonBlock>) {
+    const s = block.styles;
+    const set = (patch: Partial<ButtonBlock['styles']>) =>
+        onChange(updateBlockStyles(doc, block.id, patch), fieldKey(block.id, patch));
+    const setField = (patch: Partial<Pick<ButtonBlock, 'text' | 'href'>>) =>
+        onChange(
+            updateBlock(doc, block.id, (b) => ({ ...(b as ButtonBlock), ...patch })),
+            fieldKey(block.id, patch),
+        );
+
+    return (
+        <>
+            <h3>Button</h3>
+            <label>
+                Label
+                <input
+                    type="text"
+                    value={block.text}
+                    onChange={(event) => setField({ text: event.target.value })}
+                />
+            </label>
+            <label>
+                Link
+                <input
+                    type="url"
+                    value={block.href}
+                    placeholder="https://"
+                    onChange={(event) => setField({ href: event.target.value })}
+                />
+            </label>
+            <label>
+                Align
+                <select
+                    value={s.align}
+                    onChange={(event) =>
+                        set({ align: event.target.value as ButtonBlock['styles']['align'] })
+                    }
+                >
+                    <option value="left">Left</option>
+                    <option value="center">Center</option>
+                    <option value="right">Right</option>
+                </select>
+            </label>
+            <label>
+                Background
+                <input
+                    type="color"
+                    value={s.backgroundColor}
+                    onChange={(event) => set({ backgroundColor: event.target.value })}
+                />
+            </label>
+            <label>
+                Text color
+                <input
+                    type="color"
+                    value={s.color}
+                    onChange={(event) => set({ color: event.target.value })}
+                />
+            </label>
+            <label>
+                Font family
+                <input
+                    type="text"
+                    value={s.fontFamily ?? ''}
+                    placeholder={doc.styles.fontFamily}
+                    onChange={(event) => set({ fontFamily: event.target.value || undefined })}
+                />
+            </label>
+            <label>
+                Font size
+                <input
+                    type="number"
+                    min={8}
+                    value={s.fontSize}
+                    onChange={numeric((fontSize) => set({ fontSize }))}
+                />
+            </label>
+            <label>
+                Bold
+                <input
+                    type="checkbox"
+                    checked={s.bold}
+                    onChange={(event) => set({ bold: event.target.checked })}
+                />
+            </label>
+            <label>
+                Border radius
+                <input
+                    type="number"
+                    min={0}
+                    value={s.borderRadius}
+                    onChange={numeric((borderRadius) => set({ borderRadius }))}
+                />
+            </label>
+            <fieldset>
+                <legend>Button padding</legend>
+                <label>
+                    Vertical
+                    <input
+                        type="number"
+                        min={0}
+                        value={s.innerPaddingY}
+                        onChange={numeric((innerPaddingY) => set({ innerPaddingY }))}
+                    />
+                </label>
+                <label>
+                    Horizontal
+                    <input
+                        type="number"
+                        min={0}
+                        value={s.innerPaddingX}
+                        onChange={numeric((innerPaddingX) => set({ innerPaddingX }))}
+                    />
+                </label>
+            </fieldset>
+            <PaddingFields styles={s} onChange={set} legend="Outer padding" />
+        </>
+    );
+}
+
 interface Padding {
     paddingTop: number;
     paddingRight: number;
@@ -224,14 +348,16 @@ interface Padding {
 function PaddingFields({
     styles,
     onChange,
+    legend = 'Padding',
 }: {
     styles: Padding;
     onChange: (patch: Partial<Padding>) => void;
+    legend?: string;
 }) {
     const sides = ['Top', 'Right', 'Bottom', 'Left'] as const;
     return (
         <fieldset>
-            <legend>Padding</legend>
+            <legend>{legend}</legend>
             {sides.map((side) => {
                 const key = `padding${side}` as const;
                 return (

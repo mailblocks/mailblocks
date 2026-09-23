@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { exportHtml } from './export';
 import {
+    createButtonBlock,
     createEmptyDocument,
     createImageBlock,
     createRow,
@@ -150,5 +151,47 @@ describe('exportHtml() content background', () => {
         expect(html).toContain('<body style="margin:0;padding:0;background-color:#111111;">');
         expect(html).toContain('bgcolor="#eeeeee"');
         expect(html).toContain('background-color:#eeeeee;font-family:');
+    });
+});
+
+describe('exportHtml() with button blocks', () => {
+    function buttonHtml(block: ReturnType<typeof createButtonBlock>) {
+        const doc = createEmptyDocument();
+        const row = createRow();
+        row.columns[0]?.blocks.push(block);
+        doc.rows.push(row);
+        return exportHtml(doc);
+    }
+
+    it('puts the colour and padding on a table cell and the label in a link', () => {
+        const html = buttonHtml(createButtonBlock('Buy & save', 'https://example.com/?a=1&b=2'));
+
+        expect(html).toContain(
+            '<table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;">',
+        );
+        expect(html).toContain(
+            '<td align="center" bgcolor="#2563eb" style="background-color:#2563eb;border-radius:4px;padding:12px 24px;">',
+        );
+        expect(html).toContain(
+            '<a href="https://example.com/?a=1&amp;b=2" target="_blank" style="',
+        );
+        expect(html).toContain('font-weight:bold;');
+        expect(html).toContain('color:#ffffff;text-decoration:none;');
+        expect(html).toContain('>Buy &amp; save</a>');
+    });
+
+    it('leaves out the link target, border radius and bold when not set', () => {
+        const block = createButtonBlock('Go');
+        block.styles.borderRadius = 0;
+        block.styles.bold = false;
+        const html = buttonHtml(block);
+
+        expect(html).toContain('<a style="display:inline-block;');
+        expect(html).not.toContain('border-radius');
+        expect(html).toContain('font-weight:normal;');
+    });
+
+    it('skips buttons without a label', () => {
+        expect(buttonHtml(createButtonBlock(''))).not.toContain('<a');
     });
 });

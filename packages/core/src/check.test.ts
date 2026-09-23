@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { check, checkBlock, imageFormatFeature, type Target } from './check';
 import {
+    createButtonBlock,
     createEmptyDocument,
     createImageBlock,
     createRow,
@@ -122,5 +123,29 @@ describe('imageFormatFeature()', () => {
     it('returns undefined when the format is unknown', () => {
         expect(imageFormatFeature('https://x.com/image')).toBeUndefined();
         expect(imageFormatFeature('https://x.com/a.xyz')).toBeUndefined();
+    });
+});
+
+describe('button blocks', () => {
+    it('warns that Outlook on Windows draws square corners, with the VML hint', () => {
+        const warning = checkBlock(createButtonBlock(), [OUTLOOK_WINDOWS]).find(
+            (w) => w.property === 'borderRadius',
+        );
+        expect(warning?.feature).toBe('css-border-radius');
+        expect(warning?.level).toBe('n');
+        expect(warning?.notes.join(' ')).toMatch(/VML/);
+    });
+
+    it('only checks bold and border radius when they are used', () => {
+        const block = createButtonBlock();
+        block.styles.bold = false;
+        block.styles.borderRadius = 0;
+        const properties = checkBlock(block, [OUTLOOK_WINDOWS]).map((w) => w.property);
+        expect(properties).not.toContain('bold');
+        expect(properties).not.toContain('borderRadius');
+    });
+
+    it('has nothing to report for Gmail on the web', () => {
+        expect(checkBlock(createButtonBlock(), [GMAIL_DESKTOP])).toEqual([]);
     });
 });
