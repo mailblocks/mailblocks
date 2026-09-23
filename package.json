@@ -3,6 +3,7 @@
     "private": true,
     "scripts": {
         "dev": "pnpm --filter playground dev",
+        "dev:react": "pnpm --filter playground-react dev",
         "data:build": "pnpm --filter @mailblocks/core data:build",
         "test": "pnpm -r test",
         "typecheck": "pnpm -r typecheck",

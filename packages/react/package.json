@@ -1,0 +1,52 @@
+{
+    "name": "@mailblocks/react",
+    "private": true,
+    "version": "0.0.1",
+    "description": "React email editor built on @mailblocks/core",
+    "keywords": [
+        "react",
+        "email",
+        "email-builder",
+        "email-editor",
+        "caniemail"
+    ],
+    "author": {
+        "name": "Ibrahim Mohamed",
+        "url": "https://github.com/ibrahimmohamed4"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/mailblocks/mailblocks.git",
+        "directory": "packages/react"
+    },
+    "homepage": "https://github.com/mailblocks/mailblocks#readme",
+    "bugs": "https://github.com/mailblocks/mailblocks/issues",
+    "license": "MIT",
+    "publishConfig": {
+        "access": "public"
+    },
+    "type": "module",
+    "sideEffects": [
+        "*.css"
+    ],
+    "exports": {
+        ".": "./src/index.ts",
+        "./styles.css": "./src/styles.css"
+    },
+    "files": [
+        "dist",
+        "README.md",
+        "LICENSE"
+    ],
+    "scripts": {
+        "test": "vitest run --passWithNoTests",
+        "typecheck": "tsc --noEmit"
+    },
+    "dependencies": {
+        "@mailblocks/core": "workspace:*"
+    },
+    "peerDependencies": {
+        "react": "^18.0.0 || ^19.0.0",
+        "react-dom": "^18.0.0 || ^19.0.0"
+    }
+}
