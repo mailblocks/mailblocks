@@ -16,7 +16,8 @@ import type { ChangeEvent } from 'react';
 
 interface InspectorProps {
     doc: EmailDocument;
-    onChange: (doc: EmailDocument) => void;
+    /** `mergeKey` groups consecutive edits of the same field into one undo step. */
+    onChange: (doc: EmailDocument, mergeKey?: string) => void;
     selected: BlockLocation | undefined;
     targets: Target[];
 }
@@ -54,12 +55,13 @@ export function Inspector({ doc, onChange, selected, targets }: InspectorProps) 
 interface FieldsProps<B extends Block> {
     doc: EmailDocument;
     block: B;
-    onChange: (doc: EmailDocument) => void;
+    onChange: (doc: EmailDocument, mergeKey?: string) => void;
 }
 
 function TextFields({ doc, block, onChange }: FieldsProps<TextBlock>) {
     const s = block.styles;
-    const set = (patch: Partial<TextStyles>) => onChange(updateBlockStyles(doc, block.id, patch));
+    const set = (patch: Partial<TextStyles>) =>
+        onChange(updateBlockStyles(doc, block.id, patch), fieldKey(block.id, patch));
 
     return (
         <>
@@ -121,9 +123,12 @@ function TextFields({ doc, block, onChange }: FieldsProps<TextBlock>) {
 function ImageFields({ doc, block, onChange }: FieldsProps<ImageBlock>) {
     const s = block.styles;
     const set = (patch: Partial<ImageBlock['styles']>) =>
-        onChange(updateBlockStyles(doc, block.id, patch));
+        onChange(updateBlockStyles(doc, block.id, patch), fieldKey(block.id, patch));
     const setField = (patch: Partial<Omit<ImageBlock, 'id' | 'type' | 'styles'>>) =>
-        onChange(updateBlock(doc, block.id, (b) => ({ ...(b as ImageBlock), ...patch })));
+        onChange(
+            updateBlock(doc, block.id, (b) => ({ ...(b as ImageBlock), ...patch })),
+            fieldKey(block.id, patch),
+        );
 
     return (
         <>
@@ -269,6 +274,11 @@ function Warnings({ warnings }: { warnings: CompatWarning[] }) {
             )}
         </>
     );
+}
+
+/** Merge key for edits of the given fields of a block. */
+function fieldKey(blockId: string, patch: object): string {
+    return `field:${blockId}:${Object.keys(patch).join(',')}`;
 }
 
 function numeric(apply: (value: number) => void) {

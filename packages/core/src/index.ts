@@ -2,5 +2,6 @@
 export * from './check';
 export * from './compat';
 export * from './export';
+export * from './history';
 export * from './model';
 export * from './operations';
