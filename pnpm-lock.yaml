@@ -11,12 +11,25 @@ importers:
       prettier:
         specifier: ^3.9.8
         version: 3.9.8
+
+  apps/playground:
+    dependencies:
+      '@mailblocks/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+    devDependencies:
       typescript:
         specifier: ^7.0.2
         version: 7.0.2
       vite:
         specifier: ^8.3.0
         version: 8.3.0
+
+  packages/core:
+    devDependencies:
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
       vitest:
         specifier: ^5.0.1
         version: 5.0.1(vite@8.3.0)

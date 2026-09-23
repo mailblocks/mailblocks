@@ -62,8 +62,8 @@ Requires Node 22 and pnpm 11.
 ## Client support data
 
 Support levels come from [Can I Email](https://www.caniemail.com) by Rémi Parmentier, used under
-the MIT license (see [`data/LICENSE-caniemail`](./data/LICENSE-caniemail)). A copy of its API
-data lives in `data/caniemail.json`; `pnpm data:build` turns it into the compact table the
+the MIT license (see [`packages/core/data/LICENSE-caniemail`](./packages/core/data/LICENSE-caniemail)). A copy of its API
+data lives in `packages/core/data/caniemail.json`; `pnpm data:build` turns it into the compact table the
 library uses, keeping only the latest tested version of each client. Update the JSON and rerun
 the script to pick up new data.
 
