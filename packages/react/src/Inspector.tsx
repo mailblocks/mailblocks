@@ -6,6 +6,7 @@ import {
     updateBlockStyles,
     type Block,
     type BlockLocation,
+    type Row,
     type ButtonBlock,
     type DividerBlock,
     type CompatWarning,
@@ -16,27 +17,45 @@ import {
     type TextBlock,
     type TextStyles,
 } from '@mailblocks/core';
-import type { ChangeEvent } from 'react';
+import { DocumentSettings } from './DocumentSettings';
+import { fieldKey, numeric, PaddingFields } from './fields';
+import { RowSettings } from './RowSettings';
 
 interface InspectorProps {
     doc: EmailDocument;
     /** `mergeKey` groups consecutive edits of the same field into one undo step. */
     onChange: (doc: EmailDocument, mergeKey?: string) => void;
-    selected: BlockLocation | undefined;
+    selectedBlock: BlockLocation | undefined;
+    selectedRow: { row: Row; index: number } | undefined;
     targets: Target[];
 }
 
-/** Style controls and compatibility warnings for the selected block. */
-export function Inspector({ doc, onChange, selected, targets }: InspectorProps) {
-    if (!selected) {
+/**
+ * The side panel: the selected block's styles and compatibility warnings,
+ * the selected row's settings, or the email's settings when nothing is selected.
+ */
+export function Inspector({ doc, onChange, selectedBlock, selectedRow, targets }: InspectorProps) {
+    if (selectedRow) {
         return (
             <aside className="mb-inspector">
-                <p className="mb-muted">Select a block to edit it.</p>
+                <RowSettings
+                    doc={doc}
+                    row={selectedRow.row}
+                    index={selectedRow.index}
+                    onChange={onChange}
+                />
+            </aside>
+        );
+    }
+    if (!selectedBlock) {
+        return (
+            <aside className="mb-inspector">
+                <DocumentSettings doc={doc} onChange={onChange} />
             </aside>
         );
     }
 
-    const { block, column, index } = selected;
+    const { block, column, index } = selectedBlock;
     const move = (to: number) => onChange(moveBlock(doc, block.id, column.id, to));
 
     return (
@@ -434,44 +453,6 @@ function SpacerFields({ doc, block, onChange }: FieldsProps<SpacerBlock>) {
     );
 }
 
-interface Padding {
-    paddingTop: number;
-    paddingRight: number;
-    paddingBottom: number;
-    paddingLeft: number;
-}
-
-function PaddingFields({
-    styles,
-    onChange,
-    legend = 'Padding',
-}: {
-    styles: Padding;
-    onChange: (patch: Partial<Padding>) => void;
-    legend?: string;
-}) {
-    const sides = ['Top', 'Right', 'Bottom', 'Left'] as const;
-    return (
-        <fieldset>
-            <legend>{legend}</legend>
-            {sides.map((side) => {
-                const key = `padding${side}` as const;
-                return (
-                    <label key={side}>
-                        {side}
-                        <input
-                            type="number"
-                            min={0}
-                            value={styles[key]}
-                            onChange={numeric((value) => onChange({ [key]: value }))}
-                        />
-                    </label>
-                );
-            })}
-        </fieldset>
-    );
-}
-
 const LEVEL_LABEL: Record<CompatWarning['level'], string> = {
     n: 'not supported',
     a: 'partial',
@@ -510,13 +491,4 @@ function Warnings({ warnings }: { warnings: CompatWarning[] }) {
             )}
         </>
     );
-}
-
-/** Merge key for edits of the given fields of a block. */
-function fieldKey(blockId: string, patch: object): string {
-    return `field:${blockId}:${Object.keys(patch).join(',')}`;
-}
-
-function numeric(apply: (value: number) => void) {
-    return (event: ChangeEvent<HTMLInputElement>) => apply(Number(event.target.value));
 }

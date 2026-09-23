@@ -11,10 +11,14 @@ import {
     addRow,
     findBlock,
     moveBlock,
+    moveRow,
     removeBlock,
     removeRow,
+    setRowColumns,
     updateBlock,
     updateBlockStyles,
+    updateDocumentStyles,
+    updateRowStyles,
 } from './operations';
 
 /** A frozen two-column document so any mutation of the input throws. */
@@ -134,5 +138,85 @@ describe('moveBlock()', () => {
         const { doc, left, a, b } = fixture();
         expect(blockIds(moveBlock(doc, a.id, left.id, 1), left.id)).toEqual([b.id, a.id]);
         expect(blockIds(moveBlock(doc, b.id, left.id, 0), left.id)).toEqual([b.id, a.id]);
+    });
+});
+
+describe('updateDocumentStyles()', () => {
+    it('merges a partial patch into the document styles', () => {
+        const { doc } = fixture();
+        const next = updateDocumentStyles(doc, { contentWidth: 640 });
+        expect(next.styles.contentWidth).toBe(640);
+        expect(next.styles.fontFamily).toBe(doc.styles.fontFamily);
+        expect(next.rows).toBe(doc.rows);
+    });
+});
+
+describe('updateRowStyles()', () => {
+    it('merges a patch into one row and can clear its background', () => {
+        const { doc, row } = fixture();
+        const coloured = updateRowStyles(doc, row.id, { backgroundColor: '#fff', paddingTop: 8 });
+        expect(coloured.rows[0]?.styles).toEqual({
+            backgroundColor: '#fff',
+            paddingTop: 8,
+            paddingBottom: 0,
+        });
+        const cleared = updateRowStyles(coloured, row.id, { backgroundColor: undefined });
+        expect(cleared.rows[0]?.styles.backgroundColor).toBeUndefined();
+    });
+
+    it('throws for an unknown row', () => {
+        expect(() => updateRowStyles(fixture().doc, 'nope', {})).toThrow(/Unknown row/);
+    });
+});
+
+describe('moveRow()', () => {
+    it('moves a row down and up', () => {
+        const { doc, row } = fixture();
+        const second = createRow();
+        const third = createRow();
+        const three = addRow(addRow(doc, second), third);
+
+        expect(moveRow(three, row.id, 2).rows.map((r) => r.id)).toEqual([
+            second.id,
+            third.id,
+            row.id,
+        ]);
+        expect(moveRow(three, third.id, 0).rows.map((r) => r.id)).toEqual([
+            third.id,
+            row.id,
+            second.id,
+        ]);
+    });
+});
+
+describe('setRowColumns()', () => {
+    it('adds empty columns and keeps the existing ones', () => {
+        const { doc, row, left, right } = fixture();
+        const next = setRowColumns(doc, row.id, [25, 25, 50]);
+        const columns = next.rows[0]!.columns;
+
+        expect(columns.map((c) => c.width)).toEqual([25, 25, 50]);
+        expect(columns[0]?.id).toBe(left.id);
+        expect(columns[1]?.id).toBe(right.id);
+        expect(columns[0]?.blocks).toBe(left.blocks);
+        expect(columns[2]?.blocks).toEqual([]);
+    });
+
+    it('moves the blocks of dropped columns into the last remaining one', () => {
+        const { doc, row, left, a, b, c } = fixture();
+        const next = setRowColumns(doc, row.id, [100]);
+        const [only] = next.rows[0]!.columns;
+
+        expect(only?.id).toBe(left.id);
+        expect(only?.width).toBe(100);
+        expect(only?.blocks.map((block) => block.id)).toEqual([a.id, b.id, c.id]);
+    });
+
+    it('rejects widths that do not add up to 100 or are not positive', () => {
+        const { doc, row } = fixture();
+        expect(() => setRowColumns(doc, row.id, [])).toThrow(RangeError);
+        expect(() => setRowColumns(doc, row.id, [50, 40])).toThrow(RangeError);
+        expect(() => setRowColumns(doc, row.id, [110, -10])).toThrow(RangeError);
+        expect(() => setRowColumns(doc, row.id, [100 / 3, 100 / 3, 100 / 3])).not.toThrow();
     });
 });

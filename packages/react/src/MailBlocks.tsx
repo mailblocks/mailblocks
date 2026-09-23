@@ -13,6 +13,7 @@ import {
 import { useState, type KeyboardEvent } from 'react';
 import { Canvas } from './Canvas';
 import { Inspector } from './Inspector';
+import type { Selection } from './selection';
 
 /** Clients checked when the `targets` prop is not given. */
 export const DEFAULT_TARGETS: Target[] = [
@@ -32,8 +33,8 @@ export interface MailBlocksProps {
 
 /**
  * The editor: a toolbar with undo/redo, a canvas showing the document with
- * editable blocks, and an inspector for the selected block's styles and
- * compatibility warnings.
+ * editable blocks, and an inspector for the selected block (styles and
+ * compatibility warnings), the selected row, or the whole email.
  *
  * Undo history lives inside the component and covers the edits made through
  * it. When the host passes a document the editor did not produce, the history
@@ -44,7 +45,7 @@ export function MailBlocks({
     onChange,
     targets = DEFAULT_TARGETS,
 }: MailBlocksProps) {
-    const [selectedBlockId, setSelectedBlockId] = useState<string>();
+    const [selection, setSelection] = useState<Selection>();
     const [history, setHistory] = useState(() => createHistory(doc));
 
     // A document from outside (a load, or an edit the host did not apply)
@@ -78,8 +79,11 @@ export function MailBlocks({
         }
     };
 
-    // Resolve on every render so a removed block simply stops being selected.
-    const selected = selectedBlockId ? findBlock(doc, selectedBlockId) : undefined;
+    // Resolve on every render so a removed block or row simply stops being selected.
+    const selectedBlock = selection?.type === 'block' ? findBlock(doc, selection.id) : undefined;
+    const rowIndex =
+        selection?.type === 'row' ? doc.rows.findIndex((row) => row.id === selection.id) : -1;
+    const selectedRow = rowIndex >= 0 ? { row: doc.rows[rowIndex]!, index: rowIndex } : undefined;
 
     return (
         <div className="mb-editor" onKeyDown={onKeyDown}>
@@ -102,14 +106,15 @@ export function MailBlocks({
                         Redo
                     </button>
                 </div>
-                <Canvas
-                    doc={doc}
-                    onChange={change}
-                    selectedBlockId={selected?.block.id}
-                    onSelect={setSelectedBlockId}
-                />
+                <Canvas doc={doc} onChange={change} selection={selection} onSelect={setSelection} />
             </div>
-            <Inspector doc={doc} onChange={change} selected={selected} targets={targets} />
+            <Inspector
+                doc={doc}
+                onChange={change}
+                selectedBlock={selectedBlock}
+                selectedRow={selectedRow}
+                targets={targets}
+            />
         </div>
     );
 }

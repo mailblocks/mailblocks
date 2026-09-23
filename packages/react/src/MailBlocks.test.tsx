@@ -48,7 +48,7 @@ describe('<MailBlocks />', () => {
         const doc = documentWith(createTextBlock('<p>Hello</p>'));
         render(<MailBlocks document={doc} onChange={vi.fn()} />);
 
-        expect(screen.getByText('Select a block to edit it.')).toBeTruthy();
+        expect(screen.getByText('Click a row or a block to edit it.')).toBeTruthy();
         await userEvent.click(screen.getByText('Hello'));
         expect(screen.getByLabelText('Font size')).toBeTruthy();
     });
@@ -285,5 +285,72 @@ describe('<MailBlocks /> with divider and spacer blocks', () => {
 
         const spacer = container.querySelector('.mb-spacer') as HTMLElement;
         expect(spacer.style.height).toBe('40px');
+    });
+});
+
+describe('<MailBlocks /> email and row settings', () => {
+    function twoRows() {
+        const doc = documentWith(createTextBlock('<p>First</p>'));
+        const second = createRow();
+        second.columns[0]?.blocks.push(createTextBlock('<p>Second</p>'));
+        doc.rows.push(second);
+        return doc;
+    }
+
+    it('edits the email settings when nothing is selected', async () => {
+        const { container } = render(<Harness initial={twoRows()} />);
+
+        fireEvent.change(screen.getByLabelText('Content width'), { target: { value: '480' } });
+
+        const content = container.querySelector('.mb-content') as HTMLElement;
+        expect(content.style.width).toBe('480px');
+    });
+
+    it('selects a row by clicking it and changes its column layout', async () => {
+        const { container } = render(<Harness initial={twoRows()} />);
+        const firstRow = container.querySelector('.mb-row') as HTMLElement;
+
+        await userEvent.click(firstRow);
+        expect(screen.getByRole('heading', { name: 'Row' })).toBeTruthy();
+
+        fireEvent.change(screen.getByLabelText('Columns'), { target: { value: '4' } });
+        expect(firstRow.querySelectorAll('.mb-column')).toHaveLength(3);
+        expect(screen.getByText('First')).toBeTruthy();
+    });
+
+    it('gives a row a background and takes it away again', async () => {
+        const { container } = render(<Harness initial={twoRows()} />);
+        const firstRow = container.querySelector('.mb-row') as HTMLElement;
+        await userEvent.click(firstRow);
+
+        await userEvent.click(screen.getByLabelText('Background'));
+        fireEvent.change(screen.getByLabelText('Background color'), {
+            target: { value: '#ff0000' },
+        });
+        expect(firstRow.style.backgroundColor).toBe('rgb(255, 0, 0)');
+
+        await userEvent.click(screen.getByLabelText('Background'));
+        expect(firstRow.style.backgroundColor).toBe('');
+    });
+
+    it('moves and removes rows', async () => {
+        const { container } = render(<Harness initial={twoRows()} />);
+        const texts = () =>
+            [...container.querySelectorAll('.mb-row')].map((row) => row.textContent);
+
+        await userEvent.click(container.querySelector('.mb-row') as HTMLElement);
+        await userEvent.click(screen.getByRole('button', { name: 'Move row down' }));
+        expect(texts()[0]).toContain('Second');
+
+        await userEvent.click(screen.getByRole('button', { name: 'Remove row' }));
+        expect(container.querySelectorAll('.mb-row')).toHaveLength(1);
+        expect(screen.queryByText('First')).toBeNull();
+    });
+
+    it('selects a new row as soon as it is added', async () => {
+        render(<Harness initial={twoRows()} />);
+        await userEvent.click(screen.getByRole('button', { name: '+ 2-column row' }));
+        expect(screen.getByRole('heading', { name: 'Row' })).toBeTruthy();
+        expect((screen.getByLabelText('Columns') as HTMLSelectElement).value).toBe('1');
     });
 });
