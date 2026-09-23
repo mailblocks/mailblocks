@@ -1,4 +1,5 @@
 import {
+    createButtonBlock,
     createEmptyDocument,
     createImageBlock,
     createRow,
@@ -233,5 +234,30 @@ describe('<MailBlocks /> reordering', () => {
         await userEvent.click(screen.getByRole('button', { name: 'Move up' }));
         await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
         expect(texts(container)).toEqual(['One', 'Two']);
+    });
+});
+
+describe('<MailBlocks /> with button blocks', () => {
+    it('adds a button and changes its label from the inspector', async () => {
+        render(<Harness initial={documentWith(createTextBlock('<p>Hello</p>'))} />);
+
+        await userEvent.click(screen.getByText('+ Button'));
+        fireEvent.change(screen.getByLabelText('Label'), { target: { value: 'Buy now' } });
+
+        expect(screen.getByText('Buy now')).toBeTruthy();
+    });
+
+    it('warns about rounded corners in Outlook for the selected button', async () => {
+        render(
+            <MailBlocks
+                document={documentWith(createButtonBlock('Shop'))}
+                onChange={vi.fn()}
+                targets={[{ family: 'outlook', platform: 'windows' }]}
+            />,
+        );
+
+        await userEvent.click(screen.getByText('Shop'));
+        expect(screen.getByText('borderRadius')).toBeTruthy();
+        expect(screen.getAllByText('not supported').length).toBeGreaterThan(0);
     });
 });

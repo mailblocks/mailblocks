@@ -1,6 +1,7 @@
 import {
     addBlock,
     addRow,
+    createButtonBlock,
     createImageBlock,
     createRow,
     createTextBlock,
@@ -8,6 +9,7 @@ import {
     type Block,
     type EmailDocument,
 } from '@mailblocks/core';
+import { ButtonBlockView } from './ButtonBlockView';
 import { ImageBlockView } from './ImageBlockView';
 import { TextBlockView } from './TextBlockView';
 
@@ -85,6 +87,16 @@ export function Canvas({ doc, onChange, selectedBlockId, onSelect }: CanvasProps
                                     >
                                         + Image
                                     </button>
+                                    <button
+                                        type="button"
+                                        className="mb-add"
+                                        onClick={(event) => {
+                                            event.stopPropagation();
+                                            add(column.id, createButtonBlock());
+                                        }}
+                                    >
+                                        + Button
+                                    </button>
                                 </div>
                             </div>
                         ))}
@@ -137,5 +149,7 @@ function BlockView({ block, selected, onSelect, onChange }: BlockViewProps) {
             );
         case 'image':
             return <ImageBlockView block={block} selected={selected} onSelect={onSelect} />;
+        case 'button':
+            return <ButtonBlockView block={block} selected={selected} onSelect={onSelect} />;
     }
 }

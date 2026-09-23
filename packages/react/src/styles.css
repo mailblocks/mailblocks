@@ -271,6 +271,11 @@
     border-radius: 4px;
 }
 
+.mb-button {
+    display: inline-block;
+    cursor: default;
+}
+
 .mb-add-block {
     display: flex;
     justify-content: center;

@@ -1,4 +1,12 @@
-import type { Block, Column, EmailDocument, ImageBlock, Row, TextBlock } from './model';
+import type {
+    Block,
+    ButtonBlock,
+    Column,
+    EmailDocument,
+    ImageBlock,
+    Row,
+    TextBlock,
+} from './model';
 
 /**
  * Renders a document as a complete HTML email.
@@ -88,6 +96,8 @@ function renderBlock(block: Block, doc: EmailDocument, columnWidth: number): str
             return renderTextBlock(block, doc);
         case 'image':
             return renderImageBlock(block, columnWidth);
+        case 'button':
+            return renderButtonBlock(block, doc);
     }
 }
 
@@ -138,6 +148,48 @@ function renderTextBlock(block: TextBlock, doc: EmailDocument): string {
     return `<tr>
 <td align="${s.textAlign}" style="${css(styles)}">
 ${block.html}
+</td>
+</tr>`;
+}
+
+/**
+ * A "bulletproof" button: a table cell carries the colour and the padding,
+ * because Outlook on Windows only honours padding on table cells, and the link
+ * inside it carries the label. Outlook on Windows draws square corners.
+ */
+function renderButtonBlock(block: ButtonBlock, doc: EmailDocument): string {
+    if (!block.text) return '';
+    const s = block.styles;
+    const cellStyles = [
+        `padding:${px(s.paddingTop)} ${px(s.paddingRight)} ${px(s.paddingBottom)} ${px(s.paddingLeft)}`,
+    ];
+    const buttonStyles = [
+        `background-color:${attr(s.backgroundColor)}`,
+        s.borderRadius > 0 && `border-radius:${px(s.borderRadius)}`,
+        `padding:${px(s.innerPaddingY)} ${px(s.innerPaddingX)}`,
+    ];
+    const linkStyles = [
+        'display:inline-block',
+        `font-family:${attr(s.fontFamily ?? doc.styles.fontFamily)}`,
+        `font-size:${px(s.fontSize)}`,
+        `font-weight:${s.bold ? 'bold' : 'normal'}`,
+        `line-height:${px(Math.round(s.fontSize * 1.2))}`,
+        'mso-line-height-rule:exactly',
+        `color:${attr(s.color)}`,
+        'text-decoration:none',
+    ];
+    const href = block.href ? ` href="${attr(block.href)}" target="_blank"` : '';
+
+    // border-collapse:separate lets border-radius apply to the cell.
+    return `<tr>
+<td align="${s.align}" style="${css(cellStyles)}">
+<table role="presentation" align="${s.align}" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;">
+<tr>
+<td align="center" bgcolor="${attr(s.backgroundColor)}" style="${css(buttonStyles)}">
+<a${href} style="${css(linkStyles)}">${attr(block.text)}</a>
+</td>
+</tr>
+</table>
 </td>
 </tr>`;
 }

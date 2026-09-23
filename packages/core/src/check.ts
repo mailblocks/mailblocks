@@ -1,5 +1,5 @@
 import { supportDetails, type Family, type Platform, type SupportLevel } from './compat';
-import type { Block, EmailDocument, ImageStyles, TextStyles } from './model';
+import type { Block, ButtonStyles, EmailDocument, ImageStyles, TextStyles } from './model';
 
 /** An email client the document should render well in. */
 export interface Target {
@@ -48,6 +48,16 @@ const IMAGE_STYLE_CHECKS: StyleCheck<ImageStyles>[] = [
         feature: 'css-padding',
         isSet: (s) => s.paddingTop + s.paddingRight + s.paddingBottom + s.paddingLeft > 0,
     },
+];
+
+const BUTTON_STYLE_CHECKS: StyleCheck<ButtonStyles>[] = [
+    { property: 'backgroundColor', feature: 'css-background-color', isSet: () => true },
+    { property: 'fontFamily', feature: 'css-font', isSet: (s) => s.fontFamily !== undefined },
+    { property: 'fontSize', feature: 'css-font-size', isSet: () => true },
+    { property: 'bold', feature: 'css-font-weight', isSet: (s) => s.bold },
+    { property: 'borderRadius', feature: 'css-border-radius', isSet: (s) => s.borderRadius > 0 },
+    // The button's own padding is always there, so padding is always in use.
+    { property: 'padding', feature: 'css-padding', isSet: () => true },
 ];
 
 /** Can I Email feature slug per image file extension. */
@@ -106,6 +116,8 @@ export function checkBlock(block: Block, targets: readonly Target[]): CompatWarn
                 ...checkStyles(block.id, block.styles, IMAGE_STYLE_CHECKS, targets),
             ];
         }
+        case 'button':
+            return checkStyles(block.id, block.styles, BUTTON_STYLE_CHECKS, targets);
     }
 }
 
