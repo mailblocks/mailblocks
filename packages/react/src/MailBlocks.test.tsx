@@ -124,3 +124,58 @@ describe('<MailBlocks /> with image blocks', () => {
         expect(screen.getAllByText('not supported').length).toBeGreaterThan(0);
     });
 });
+
+describe('<MailBlocks /> undo and redo', () => {
+    function fontSizeInput() {
+        return screen.getByLabelText('Font size') as HTMLInputElement;
+    }
+
+    it('starts with nothing to undo', () => {
+        render(<Harness initial={documentWith(createTextBlock('<p>Hello</p>'))} />);
+        expect((screen.getByRole('button', { name: 'Undo' }) as HTMLButtonElement).disabled).toBe(
+            true,
+        );
+        expect((screen.getByRole('button', { name: 'Redo' }) as HTMLButtonElement).disabled).toBe(
+            true,
+        );
+    });
+
+    it('undoes and redoes a style change from the toolbar', async () => {
+        render(<Harness initial={documentWith(createTextBlock('<p>Hello</p>'))} />);
+        await userEvent.click(screen.getByText('Hello'));
+        fireEvent.change(fontSizeInput(), { target: { value: '20' } });
+        expect(fontSizeInput().value).toBe('20');
+
+        await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
+        expect(fontSizeInput().value).toBe('16');
+
+        await userEvent.click(screen.getByRole('button', { name: 'Redo' }));
+        expect(fontSizeInput().value).toBe('20');
+    });
+
+    it('groups quick edits of the same field into one step', async () => {
+        render(<Harness initial={documentWith(createTextBlock('<p>Hello</p>'))} />);
+        await userEvent.click(screen.getByText('Hello'));
+        fireEvent.change(fontSizeInput(), { target: { value: '2' } });
+        fireEvent.change(fontSizeInput(), { target: { value: '24' } });
+
+        await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
+        expect(fontSizeInput().value).toBe('16');
+    });
+
+    it('brings back a removed block with Ctrl+Z and removes it again with Ctrl+Shift+Z', async () => {
+        const { container } = render(
+            <Harness initial={documentWith(createTextBlock('<p>Hello</p>'))} />,
+        );
+        const editor = container.querySelector('.mb-editor')!;
+        await userEvent.click(screen.getByText('Hello'));
+        await userEvent.click(screen.getByRole('button', { name: 'Remove block' }));
+        expect(screen.queryByText('Hello')).toBeNull();
+
+        fireEvent.keyDown(editor, { key: 'z', ctrlKey: true });
+        expect(screen.getByText('Hello')).toBeTruthy();
+
+        fireEvent.keyDown(editor, { key: 'Z', ctrlKey: true, shiftKey: true });
+        expect(screen.queryByText('Hello')).toBeNull();
+    });
+});

@@ -13,7 +13,8 @@ import { TextBlockView } from './TextBlockView';
 
 interface CanvasProps {
     doc: EmailDocument;
-    onChange: (doc: EmailDocument) => void;
+    /** `mergeKey` groups consecutive edits of the same thing into one undo step. */
+    onChange: (doc: EmailDocument, mergeKey?: string) => void;
     selectedBlockId: string | undefined;
     onSelect: (blockId: string | undefined) => void;
 }
@@ -56,7 +57,10 @@ export function Canvas({ doc, onChange, selectedBlockId, onSelect }: CanvasProps
                                         selected={block.id === selectedBlockId}
                                         onSelect={() => onSelect(block.id)}
                                         onChange={(next) =>
-                                            onChange(updateBlock(doc, block.id, () => next))
+                                            onChange(
+                                                updateBlock(doc, block.id, () => next),
+                                                `content:${block.id}`,
+                                            )
                                         }
                                     />
                                 ))}
