@@ -11,7 +11,7 @@ import {
     type Family,
     type Platform,
     type Target,
-} from '../src/index';
+} from '@mailblocks/core';
 
 const $ = <T extends HTMLElement>(id: string): T => {
     const element = document.getElementById(id);

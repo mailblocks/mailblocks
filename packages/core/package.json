@@ -1,0 +1,46 @@
+{
+    "name": "@mailblocks/core",
+    "private": true,
+    "version": "0.0.1",
+    "description": "Email document model, client-compatibility checks powered by Can I Email, and HTML export",
+    "keywords": [
+        "email",
+        "email-builder",
+        "email-editor",
+        "caniemail"
+    ],
+    "author": {
+        "name": "Ibrahim Mohamed",
+        "url": "https://github.com/ibrahimmohamed4"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/mailblocks/mailblocks.git",
+        "directory": "packages/core"
+    },
+    "homepage": "https://github.com/mailblocks/mailblocks#readme",
+    "bugs": "https://github.com/mailblocks/mailblocks/issues",
+    "license": "MIT",
+    "publishConfig": {
+        "access": "public"
+    },
+    "type": "module",
+    "sideEffects": false,
+    "exports": {
+        ".": "./src/index.ts"
+    },
+    "files": [
+        "dist",
+        "README.md",
+        "LICENSE"
+    ],
+    "scripts": {
+        "data:build": "node scripts/build-compat-data.mjs",
+        "test": "vitest run --passWithNoTests",
+        "typecheck": "tsc --noEmit"
+    },
+    "devDependencies": {
+        "typescript": "^7.0.2",
+        "vitest": "^5.0.1"
+    }
+}

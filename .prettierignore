@@ -1,5 +1,5 @@
-# Generated from data/caniemail.json by pnpm data:build
-src/generated/
+# Generated from packages/core/data/caniemail.json by pnpm data:build
+packages/core/src/generated/
 # Third-party data and lockfile
-data/
+packages/core/data/
 pnpm-lock.yaml
