@@ -179,3 +179,59 @@ describe('<MailBlocks /> undo and redo', () => {
         expect(screen.queryByText('Hello')).toBeNull();
     });
 });
+
+describe('<MailBlocks /> reordering', () => {
+    function texts(container: HTMLElement) {
+        return [...container.querySelectorAll('.mb-block')].map((block) => block.textContent);
+    }
+
+    it('moves the selected block up and down inside its column', async () => {
+        const { container } = render(
+            <Harness
+                initial={documentWith(
+                    createTextBlock('<p>One</p>'),
+                    createTextBlock('<p>Two</p>'),
+                    createTextBlock('<p>Three</p>'),
+                )}
+            />,
+        );
+
+        await userEvent.click(screen.getByText('Two'));
+        await userEvent.click(screen.getByRole('button', { name: 'Move up' }));
+        expect(texts(container)).toEqual(['Two', 'One', 'Three']);
+
+        await userEvent.click(screen.getByRole('button', { name: 'Move down' }));
+        await userEvent.click(screen.getByRole('button', { name: 'Move down' }));
+        expect(texts(container)).toEqual(['One', 'Three', 'Two']);
+    });
+
+    it('disables moves past the ends of the column', async () => {
+        render(
+            <Harness
+                initial={documentWith(createTextBlock('<p>One</p>'), createTextBlock('<p>Two</p>'))}
+            />,
+        );
+        const button = (name: string) => screen.getByRole('button', { name }) as HTMLButtonElement;
+
+        await userEvent.click(screen.getByText('One'));
+        expect(button('Move up').disabled).toBe(true);
+        expect(button('Move down').disabled).toBe(false);
+
+        await userEvent.click(screen.getByText('Two'));
+        expect(button('Move up').disabled).toBe(false);
+        expect(button('Move down').disabled).toBe(true);
+    });
+
+    it('undoes a move in one step', async () => {
+        const { container } = render(
+            <Harness
+                initial={documentWith(createTextBlock('<p>One</p>'), createTextBlock('<p>Two</p>'))}
+            />,
+        );
+
+        await userEvent.click(screen.getByText('Two'));
+        await userEvent.click(screen.getByRole('button', { name: 'Move up' }));
+        await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
+        expect(texts(container)).toEqual(['One', 'Two']);
+    });
+});

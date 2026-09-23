@@ -134,7 +134,7 @@
 }
 
 .mb-inspector h3 + h3,
-.mb-inspector .mb-remove + h3 {
+.mb-inspector .mb-block-actions + h3 {
     margin-top: 20px;
 }
 
@@ -177,7 +177,30 @@
     width: 70px;
 }
 
-.mb-remove {
+.mb-block-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
+.mb-block-actions button {
+    font: inherit;
+    font-size: 12px;
+    padding: 4px 10px;
+    color: #374151;
+    background: #fff;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.mb-block-actions button:disabled {
+    color: #9ca3af;
+    cursor: default;
+}
+
+.mb-block-actions .mb-remove {
     font: inherit;
     font-size: 12px;
     padding: 4px 10px;
