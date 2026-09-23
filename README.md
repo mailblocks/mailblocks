@@ -12,15 +12,17 @@ not supported and why, and exports table-based HTML that those clients can actua
 
 ## What works today
 
-- **Document model** – rows, columns and blocks. Text and image blocks so far.
+- **Document model** – rows, columns and blocks: text, image, button, divider and spacer.
 - **Compatibility check** – `check(doc, targets)` returns a warning for every style a target
   client does not fully support, with Can I Email's footnotes explaining what exactly is missing.
   Image formats are checked too, so a `.webp` or `.svg` warns for clients that cannot show it.
 - **HTML export** – `exportHtml(doc)` renders nested tables with inline styles, pixel units and
-  the Outlook-specific hints that keep it from mangling the result.
-- **React editor** – `<MailBlocks>` lets you type into text blocks in place, add text and image
-  blocks and rows, style the selected block in an inspector that lists its warnings, move blocks
-  up and down, and undo or redo every change.
+  the Outlook-specific hints that keep it from mangling the result: buttons whose colour and
+  padding sit on a table cell, dividers drawn as table borders, spacers sized with cell heights.
+- **React editor** – `<MailBlocks>` lets you type into text blocks in place, add any block type,
+  style the selected block in an inspector that lists its warnings, and move blocks up and down.
+  Select a row to change its column layout, background, padding and order; select nothing to set
+  the email background, content width and font. Every change can be undone and redone.
 
 Neither package has runtime dependencies beyond React for the editor.
 
@@ -112,9 +114,9 @@ and rerun the script to pick up new data.
 
 ## Roadmap
 
-1. More block types: button, divider, spacer.
-2. Value-aware warnings, so a `text-align: center` is not flagged for a note about `start`.
-3. Document and row settings in the editor: colours, content width, column layouts.
+1. Value-aware warnings, so a `text-align: center` is not flagged for a note about `start`.
+2. Compatibility checks for rows and email settings, not only blocks.
+3. Rounded buttons in Outlook on Windows through VML.
 4. An Angular package on top of the same core.
 5. A first release on npm.
 
