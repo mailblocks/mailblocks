@@ -5,3 +5,4 @@ export * from './export';
 export * from './history';
 export * from './model';
 export * from './operations';
+export * from './report';

@@ -11,6 +11,12 @@ export const platforms = ["android","desktop-webmail","ios","macos","mobile-webm
 export type Family = (typeof families)[number];
 export type Platform = (typeof platforms)[number];
 
+/** Display names, e.g. "Apple Mail" for "apple-mail". */
+export const familyNames: Record<Family, string> = {"aol":"AOL","apple-mail":"Apple Mail","fastmail":"Fastmail","free-fr":"Free.fr","gmail":"Gmail","gmx":"GMX","hey":"HEY","ionos-1and1":"1&1","laposte":"LaPoste.net","mail-ru":"Mail.ru","orange":"Orange","outlook":"Outlook","protonmail":"ProtonMail","rainloop":"RainLoop","samsung-email":"Samsung Email","sfr":"SFR","t-online-de":"T-online.de","thunderbird":"Mozilla Thunderbird","web-de":"WEB.DE","wp-pl":"WP.pl","yahoo":"Yahoo! Mail"};
+
+/** Display names, e.g. "Desktop Webmail" for "desktop-webmail". */
+export const platformNames: Record<Platform, string> = {"android":"Android","desktop-webmail":"Desktop Webmail","ios":"iOS","macos":"macOS","mobile-webmail":"Mobile Webmail","outlook-com":"Outlook.com","windows":"Windows","windows-mail":"Windows Mail"};
+
 export interface Feature {
   title: string;
   category: string;

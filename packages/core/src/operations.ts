@@ -165,6 +165,33 @@ export function setRowColumns(doc: EmailDocument, rowId: string, widths: number[
     return { ...doc, rows: doc.rows.map((r) => (r.id === rowId ? { ...r, columns } : r)) };
 }
 
+/**
+ * Sets the width of the column at `index` and gives or takes the difference
+ * from its neighbour (the next column, or the previous one for the last
+ * column), so the widths still add up to 100. No column goes below
+ * `minWidth` percent. A single-column row is left as it is.
+ */
+export function resizeColumn(
+    doc: EmailDocument,
+    rowId: string,
+    index: number,
+    width: number,
+    minWidth = 10,
+): EmailDocument {
+    const row = requireRow(doc, rowId);
+    const widths = row.columns.map((column) => column.width);
+    if (!Number.isInteger(index) || index < 0 || index >= widths.length) {
+        throw new RangeError(`Row has no column ${index}`);
+    }
+    if (widths.length === 1) return doc;
+    const neighbour = index < widths.length - 1 ? index + 1 : index - 1;
+    const pair = widths[index]! + widths[neighbour]!;
+    const clamped = Math.min(Math.max(width, minWidth), pair - minWidth);
+    widths[index] = clamped;
+    widths[neighbour] = pair - clamped;
+    return setRowColumns(doc, rowId, widths);
+}
+
 // ---------------------------------------------------------------------------
 
 function updateColumn(

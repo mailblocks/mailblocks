@@ -19,14 +19,18 @@ not supported and why, and exports table-based HTML that those clients can actua
   (a `start` alignment, `rem` sizes) or problems it already works around (padding outside table
   cells) are left out, and a partial support with nothing left is not reported. Image formats are
   checked too, so a `.webp` or `.svg` warns for clients that cannot show it.
+  `clientReport(doc)` runs the check for every client Can I Email knows and rates each one:
+  works, unknown, partial support or problems.
 - **HTML export** – `exportHtml(doc)` renders nested tables with inline styles, pixel units and
   the Outlook-specific hints that keep it from mangling the result: buttons whose colour and
   padding sit on a table cell (and rounded ones redrawn in VML for Outlook on Windows), dividers
   drawn as table borders, spacers sized with cell heights.
 - **React editor** – `<MailBlocks>` lets you type into text blocks in place, add any block type,
   style the selected block in an inspector that lists its warnings, and move blocks up and down.
-  Select a row to change its column layout, background, padding and order; select nothing to set
-  the email background, content width and font. Every change can be undone and redone.
+  Select a row to change its column layout (up to six columns, with custom widths), background,
+  padding and order; select nothing to set the email background, content width and font. The
+  Clients tab lists every email client by how well the email renders there, and jumps to the
+  block behind an issue. Every change can be undone and redone.
 
 Neither package has runtime dependencies beyond React for the editor.
 

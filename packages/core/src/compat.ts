@@ -2,8 +2,10 @@ import { features, type Family, type Platform } from './generated/caniemail';
 
 export {
     families,
+    familyNames,
     features,
     lastUpdate,
+    platformNames,
     platforms,
     type Family,
     type Feature,

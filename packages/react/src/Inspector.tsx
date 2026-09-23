@@ -17,7 +17,14 @@ import {
     type TextStyles,
 } from '@mailblocks/core';
 import { DocumentSettings } from './DocumentSettings';
-import { fieldKey, numeric, PaddingFields } from './fields';
+import {
+    ALIGN_CHOICES,
+    ChoiceField,
+    fieldKey,
+    LINE_STYLE_CHOICES,
+    numeric,
+    PaddingFields,
+} from './fields';
 import { RowSettings } from './RowSettings';
 import { Warnings } from './Warnings';
 
@@ -37,7 +44,7 @@ interface InspectorProps {
 export function Inspector({ doc, onChange, selectedBlock, selectedRow, targets }: InspectorProps) {
     if (selectedRow) {
         return (
-            <aside className="mb-inspector">
+            <div className="mb-inspector">
                 <RowSettings
                     doc={doc}
                     row={selectedRow.row}
@@ -45,14 +52,14 @@ export function Inspector({ doc, onChange, selectedBlock, selectedRow, targets }
                     onChange={onChange}
                     targets={targets}
                 />
-            </aside>
+            </div>
         );
     }
     if (!selectedBlock) {
         return (
-            <aside className="mb-inspector">
+            <div className="mb-inspector">
                 <DocumentSettings doc={doc} onChange={onChange} targets={targets} />
-            </aside>
+            </div>
         );
     }
 
@@ -60,7 +67,7 @@ export function Inspector({ doc, onChange, selectedBlock, selectedRow, targets }
     const move = (to: number) => onChange(moveBlock(doc, block.id, column.id, to));
 
     return (
-        <aside className="mb-inspector">
+        <div className="mb-inspector">
             {block.type === 'text' && <TextFields doc={doc} block={block} onChange={onChange} />}
             {block.type === 'image' && <ImageFields doc={doc} block={block} onChange={onChange} />}
             {block.type === 'button' && (
@@ -92,7 +99,7 @@ export function Inspector({ doc, onChange, selectedBlock, selectedRow, targets }
                 </button>
             </div>
             <Warnings warnings={checkBlock(block, targets)} />
-        </aside>
+        </div>
     );
 }
 
@@ -148,19 +155,12 @@ function TextFields({ doc, block, onChange }: FieldsProps<TextBlock>) {
                     onChange={(event) => set({ color: event.target.value })}
                 />
             </label>
-            <label>
-                Align
-                <select
-                    value={s.textAlign}
-                    onChange={(event) =>
-                        set({ textAlign: event.target.value as TextStyles['textAlign'] })
-                    }
-                >
-                    <option value="left">Left</option>
-                    <option value="center">Center</option>
-                    <option value="right">Right</option>
-                </select>
-            </label>
+            <ChoiceField
+                label="Align"
+                value={s.textAlign}
+                choices={ALIGN_CHOICES}
+                onChange={(textAlign) => set({ textAlign })}
+            />
             <PaddingFields styles={s} onChange={set} />
         </>
     );
@@ -219,19 +219,12 @@ function ImageFields({ doc, block, onChange }: FieldsProps<ImageBlock>) {
                     }
                 />
             </label>
-            <label>
-                Align
-                <select
-                    value={s.align}
-                    onChange={(event) =>
-                        set({ align: event.target.value as ImageBlock['styles']['align'] })
-                    }
-                >
-                    <option value="left">Left</option>
-                    <option value="center">Center</option>
-                    <option value="right">Right</option>
-                </select>
-            </label>
+            <ChoiceField
+                label="Align"
+                value={s.align}
+                choices={ALIGN_CHOICES}
+                onChange={(align) => set({ align })}
+            />
             <label>
                 Border radius
                 <input
@@ -276,19 +269,12 @@ function ButtonFields({ doc, block, onChange }: FieldsProps<ButtonBlock>) {
                     onChange={(event) => setField({ href: event.target.value })}
                 />
             </label>
-            <label>
-                Align
-                <select
-                    value={s.align}
-                    onChange={(event) =>
-                        set({ align: event.target.value as ButtonBlock['styles']['align'] })
-                    }
-                >
-                    <option value="left">Left</option>
-                    <option value="center">Center</option>
-                    <option value="right">Right</option>
-                </select>
-            </label>
+            <ChoiceField
+                label="Align"
+                value={s.align}
+                choices={ALIGN_CHOICES}
+                onChange={(align) => set({ align })}
+            />
             <label>
                 Background
                 <input
@@ -391,21 +377,12 @@ function DividerFields({ doc, block, onChange }: FieldsProps<DividerBlock>) {
                     onChange={numeric((thickness) => set({ thickness }))}
                 />
             </label>
-            <label>
-                Line style
-                <select
-                    value={s.lineStyle}
-                    onChange={(event) =>
-                        set({
-                            lineStyle: event.target.value as DividerBlock['styles']['lineStyle'],
-                        })
-                    }
-                >
-                    <option value="solid">Solid</option>
-                    <option value="dashed">Dashed</option>
-                    <option value="dotted">Dotted</option>
-                </select>
-            </label>
+            <ChoiceField
+                label="Line style"
+                value={s.lineStyle}
+                choices={LINE_STYLE_CHOICES}
+                onChange={(lineStyle) => set({ lineStyle })}
+            />
             <label>
                 Width (%)
                 <input
@@ -416,19 +393,12 @@ function DividerFields({ doc, block, onChange }: FieldsProps<DividerBlock>) {
                     onChange={numeric((width) => set({ width }))}
                 />
             </label>
-            <label>
-                Align
-                <select
-                    value={s.align}
-                    onChange={(event) =>
-                        set({ align: event.target.value as DividerBlock['styles']['align'] })
-                    }
-                >
-                    <option value="left">Left</option>
-                    <option value="center">Center</option>
-                    <option value="right">Right</option>
-                </select>
-            </label>
+            <ChoiceField
+                label="Align"
+                value={s.align}
+                choices={ALIGN_CHOICES}
+                onChange={(align) => set({ align })}
+            />
             <PaddingFields styles={s} onChange={set} />
         </>
     );
