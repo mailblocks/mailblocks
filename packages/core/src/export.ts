@@ -163,11 +163,18 @@ ${block.html}
 /**
  * A "bulletproof" button: a table cell carries the colour and the padding,
  * because Outlook on Windows only honours padding on table cells, and the link
- * inside it carries the label. Outlook on Windows draws square corners.
+ * inside it carries the label.
+ *
+ * Outlook on Windows cannot round table cells, so a rounded button is also
+ * drawn as a VML `roundrect` inside a conditional comment only Outlook reads,
+ * and the HTML button is hidden from Outlook. VML needs a fixed size, so the
+ * width is estimated from the label.
  */
 function renderButtonBlock(block: ButtonBlock, doc: EmailDocument): string {
     if (!block.text) return '';
     const s = block.styles;
+    const fontFamily = s.fontFamily ?? doc.styles.fontFamily;
+    const lineHeight = Math.round(s.fontSize * 1.2);
     const cellStyles = [
         `padding:${px(s.paddingTop)} ${px(s.paddingRight)} ${px(s.paddingBottom)} ${px(s.paddingLeft)}`,
     ];
@@ -178,10 +185,10 @@ function renderButtonBlock(block: ButtonBlock, doc: EmailDocument): string {
     ];
     const linkStyles = [
         'display:inline-block',
-        `font-family:${attr(s.fontFamily ?? doc.styles.fontFamily)}`,
+        `font-family:${attr(fontFamily)}`,
         `font-size:${px(s.fontSize)}`,
         `font-weight:${s.bold ? 'bold' : 'normal'}`,
-        `line-height:${px(Math.round(s.fontSize * 1.2))}`,
+        `line-height:${px(lineHeight)}`,
         'mso-line-height-rule:exactly',
         `color:${attr(s.color)}`,
         'text-decoration:none',
@@ -189,17 +196,64 @@ function renderButtonBlock(block: ButtonBlock, doc: EmailDocument): string {
     const href = block.href ? ` href="${attr(block.href)}" target="_blank"` : '';
 
     // border-collapse:separate lets border-radius apply to the cell.
-    return `<tr>
-<td align="${s.align}" style="${css(cellStyles)}">
-<table role="presentation" align="${s.align}" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;">
+    const html = `<table role="presentation" align="${s.align}" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;">
 <tr>
 <td align="center" bgcolor="${attr(s.backgroundColor)}" style="${css(buttonStyles)}">
 <a${href} style="${css(linkStyles)}">${attr(block.text)}</a>
 </td>
 </tr>
-</table>
+</table>`;
+
+    let content = html;
+    if (s.borderRadius > 0) {
+        const width =
+            Math.ceil(estimateTextWidth(block.text, s.fontSize, s.bold)) + 2 * s.innerPaddingX;
+        const height = lineHeight + 2 * s.innerPaddingY;
+        // arcsize is a percentage of half the smaller side (100% is fully round).
+        const arcsize = Math.min(
+            100,
+            Math.round((s.borderRadius / (Math.min(width, height) / 2)) * 100),
+        );
+        const vmlHref = block.href ? ` href="${attr(block.href)}"` : '';
+        const labelStyles = [
+            `color:${attr(s.color)}`,
+            `font-family:${attr(fontFamily)}`,
+            `font-size:${px(s.fontSize)}`,
+            `font-weight:${s.bold ? 'bold' : 'normal'}`,
+        ];
+        content = `<!--[if mso]>
+<v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word"${vmlHref} style="height:${px(height)};v-text-anchor:middle;width:${px(width)};" arcsize="${arcsize}%" stroke="f" fillcolor="${attr(s.backgroundColor)}">
+<w:anchorlock/>
+<center style="${css(labelStyles)}">${attr(block.text)}</center>
+</v:roundrect>
+<![endif]-->
+<!--[if !mso]><!-->
+${html}
+<!--<![endif]-->`;
+    }
+
+    return `<tr>
+<td align="${s.align}" style="${css(cellStyles)}">
+${content}
 </td>
 </tr>`;
+}
+
+/**
+ * Rough rendered width of `text` in pixels, from average glyph widths of common
+ * email fonts. Errs on the wide side: a VML button that is slightly too wide
+ * only gets more padding, one that is too narrow wraps its label.
+ */
+function estimateTextWidth(text: string, fontSize: number, bold: boolean): number {
+    let ems = 0;
+    for (const char of text) {
+        if (char === ' ') ems += 0.3;
+        else if (/[iljtfrI.,:;'!|()[\]]/.test(char)) ems += 0.35;
+        else if (/[mwMW@%]/.test(char)) ems += 0.95;
+        else if (/[A-Z]/.test(char)) ems += 0.72;
+        else ems += 0.58;
+    }
+    return ems * fontSize * (bold ? 1.08 : 1);
 }
 
 /**

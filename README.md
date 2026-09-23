@@ -21,7 +21,8 @@ not supported and why, and exports table-based HTML that those clients can actua
   checked too, so a `.webp` or `.svg` warns for clients that cannot show it.
 - **HTML export** – `exportHtml(doc)` renders nested tables with inline styles, pixel units and
   the Outlook-specific hints that keep it from mangling the result: buttons whose colour and
-  padding sit on a table cell, dividers drawn as table borders, spacers sized with cell heights.
+  padding sit on a table cell (and rounded ones redrawn in VML for Outlook on Windows), dividers
+  drawn as table borders, spacers sized with cell heights.
 - **React editor** – `<MailBlocks>` lets you type into text blocks in place, add any block type,
   style the selected block in an inspector that lists its warnings, and move blocks up and down.
   Select a row to change its column layout, background, padding and order; select nothing to set
@@ -43,6 +44,7 @@ import {
     check,
     createButtonBlock,
     createEmptyDocument,
+    createImageBlock,
     createRow,
     createTextBlock,
     exportHtml,
@@ -52,15 +54,19 @@ const doc = createEmptyDocument();
 const row = createRow(2);
 row.columns[0].blocks.push(createTextBlock('<p>Left column</p>'));
 row.columns[1].blocks.push(createButtonBlock('Shop now', 'https://example.com'));
+row.columns[1].blocks.push(createImageBlock('https://example.com/hero.webp', 'Summer sale'));
 doc.rows.push(row);
 
 check(doc, [
     { family: 'gmail', platform: 'desktop-webmail' },
     { family: 'outlook', platform: 'windows' },
 ]);
-// [{ subject: { type: 'block', id: '…' }, property: 'borderRadius',
-//    feature: 'css-border-radius', level: 'n', target: { family: 'outlook', platform: 'windows' },
-//    notes: ['Round corners can be used in VML with the `RoundRect` element. …'], ... }]
+// [{ subject: { type: 'block', id: '…' }, property: 'src', feature: 'image-webp', level: 'a',
+//    target: { family: 'gmail', platform: 'desktop-webmail' },
+//    notes: ['Partial: Converts file to jpg.', 'Partial. Does not support animation.'], ... },
+//  { subject: { type: 'block', id: '…' }, property: 'src', feature: 'image-webp', level: 'n',
+//    target: { family: 'outlook', platform: 'windows' }, notes: [], ... }]
+// The button's rounded corners are not reported: the export draws them in VML for Outlook.
 
 exportHtml(doc);
 // '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" ...'
@@ -118,9 +124,8 @@ and rerun the script to pick up new data.
 
 ## Roadmap
 
-1. Rounded buttons in Outlook on Windows through VML.
-2. An Angular package on top of the same core.
-3. A first release on npm.
+1. An Angular package on top of the same core.
+2. A first release on npm.
 
 ## Contributing
 
