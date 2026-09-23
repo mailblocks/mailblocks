@@ -93,8 +93,10 @@ function renderTextBlock(block: TextBlock, doc: EmailDocument): string {
         `padding:${px(s.paddingTop)} ${px(s.paddingRight)} ${px(s.paddingBottom)} ${px(s.paddingLeft)}`,
         `font-family:${attr(s.fontFamily ?? doc.styles.fontFamily)}`,
         `font-size:${px(s.fontSize)}`,
-        // Outlook on Windows mishandles unitless line-height, so always emit pixels.
+        // Outlook on Windows mishandles unitless line-height, so always emit pixels,
+        // and tell it to respect them exactly (Can I Email, css-line-height footnote).
         `line-height:${px(Math.round(s.fontSize * s.lineHeight))}`,
+        `mso-line-height-rule:exactly`,
         `color:${attr(s.color)}`,
         `text-align:${s.textAlign}`,
     ];
