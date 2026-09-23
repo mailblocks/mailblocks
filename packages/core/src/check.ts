@@ -3,8 +3,11 @@ import type {
     Block,
     ButtonStyles,
     DividerStyles,
+    DocumentStyles,
     EmailDocument,
     ImageStyles,
+    Row,
+    RowStyles,
     TextStyles,
 } from './model';
 
@@ -14,10 +17,14 @@ export interface Target {
     platform: Platform;
 }
 
-/** A style used by a block that a target client does not fully support. */
+/** What a warning is about: the email as a whole, one row, or one block. */
+export type WarningSubject =
+    { type: 'document' } | { type: 'row'; id: string } | { type: 'block'; id: string };
+
+/** A style used in the document that a target client does not fully support. */
 export interface CompatWarning {
-    blockId: string;
-    /** The block style that triggered the warning, e.g. "fontSize" or "padding". */
+    subject: WarningSubject;
+    /** The style that triggered the warning, e.g. "fontSize" or "padding". */
     property: string;
     /** The Can I Email feature it depends on, e.g. "css-font-size". */
     feature: string;
@@ -32,9 +39,30 @@ export interface CompatWarning {
 interface StyleCheck<Styles> {
     property: string;
     feature: string;
-    /** Whether the block actually uses this style, so untouched defaults do not warn. */
+    /** Whether the style is actually in use, so untouched defaults do not warn. */
     isSet: (styles: Styles) => boolean;
 }
+
+// Content width is not checked: the exporter sets it as an HTML width
+// attribute as well, which is what Outlook relies on.
+const DOCUMENT_STYLE_CHECKS: StyleCheck<DocumentStyles>[] = [
+    // One check covers both the email and the content background.
+    { property: 'backgroundColor', feature: 'css-background-color', isSet: () => true },
+    { property: 'fontFamily', feature: 'css-font', isSet: () => true },
+];
+
+const ROW_STYLE_CHECKS: StyleCheck<RowStyles>[] = [
+    {
+        property: 'backgroundColor',
+        feature: 'css-background-color',
+        isSet: (s) => s.backgroundColor !== undefined,
+    },
+    {
+        property: 'padding',
+        feature: 'css-padding',
+        isSet: (s) => s.paddingTop + s.paddingBottom > 0,
+    },
+];
 
 const TEXT_STYLE_CHECKS: StyleCheck<TextStyles>[] = [
     { property: 'fontFamily', feature: 'css-font', isSet: (s) => s.fontFamily !== undefined },
@@ -107,12 +135,14 @@ export function imageFormatFeature(src: string): string | undefined {
 
 /**
  * Lists every style in the document that one of the `targets` does not fully
- * support according to Can I Email. An empty array means the document is safe
- * for all targets, as far as Can I Email knows.
+ * support according to Can I Email: the email settings first, then each row
+ * followed by its blocks. An empty array means the document is safe for all
+ * targets, as far as Can I Email knows.
  */
 export function check(doc: EmailDocument, targets: readonly Target[]): CompatWarning[] {
-    const warnings: CompatWarning[] = [];
+    const warnings = checkDocument(doc, targets);
     for (const row of doc.rows) {
+        warnings.push(...checkRow(row, targets));
         for (const column of row.columns) {
             for (const block of column.blocks) warnings.push(...checkBlock(block, targets));
         }
@@ -120,22 +150,33 @@ export function check(doc: EmailDocument, targets: readonly Target[]): CompatWar
     return warnings;
 }
 
+/** Warnings for the email-wide settings only, not its rows or blocks. */
+export function checkDocument(doc: EmailDocument, targets: readonly Target[]): CompatWarning[] {
+    return checkStyles({ type: 'document' }, doc.styles, DOCUMENT_STYLE_CHECKS, targets);
+}
+
+/** Warnings for a row's own settings, not its blocks. */
+export function checkRow(row: Row, targets: readonly Target[]): CompatWarning[] {
+    return checkStyles({ type: 'row', id: row.id }, row.styles, ROW_STYLE_CHECKS, targets);
+}
+
 /** Same as {@link check} for a single block. */
 export function checkBlock(block: Block, targets: readonly Target[]): CompatWarning[] {
+    const subject: WarningSubject = { type: 'block', id: block.id };
     switch (block.type) {
         case 'text':
-            return checkStyles(block.id, block.styles, TEXT_STYLE_CHECKS, targets);
+            return checkStyles(subject, block.styles, TEXT_STYLE_CHECKS, targets);
         case 'image': {
             const format = imageFormatFeature(block.src);
             return [
-                ...(format ? checkFeature(block.id, 'src', format, targets) : []),
-                ...checkStyles(block.id, block.styles, IMAGE_STYLE_CHECKS, targets),
+                ...(format ? checkFeature(subject, 'src', format, targets) : []),
+                ...checkStyles(subject, block.styles, IMAGE_STYLE_CHECKS, targets),
             ];
         }
         case 'button':
-            return checkStyles(block.id, block.styles, BUTTON_STYLE_CHECKS, targets);
+            return checkStyles(subject, block.styles, BUTTON_STYLE_CHECKS, targets);
         case 'divider':
-            return checkStyles(block.id, block.styles, DIVIDER_STYLE_CHECKS, targets);
+            return checkStyles(subject, block.styles, DIVIDER_STYLE_CHECKS, targets);
         case 'spacer':
             // Rendered with a height attribute and a matching line height, which
             // does not depend on any partially supported CSS.
@@ -144,19 +185,19 @@ export function checkBlock(block: Block, targets: readonly Target[]): CompatWarn
 }
 
 function checkStyles<Styles>(
-    blockId: string,
+    subject: WarningSubject,
     styles: Styles,
     checks: readonly StyleCheck<Styles>[],
     targets: readonly Target[],
 ): CompatWarning[] {
     return checks
         .filter(({ isSet }) => isSet(styles))
-        .flatMap(({ property, feature }) => checkFeature(blockId, property, feature, targets));
+        .flatMap(({ property, feature }) => checkFeature(subject, property, feature, targets));
 }
 
 /** Warnings for one Can I Email feature across the targets. */
 function checkFeature(
-    blockId: string,
+    subject: WarningSubject,
     property: string,
     feature: string,
     targets: readonly Target[],
@@ -166,7 +207,7 @@ function checkFeature(
         const details = supportDetails(feature, target.family, target.platform);
         if (!details || details.level === 'y') continue;
         warnings.push({
-            blockId,
+            subject,
             property,
             feature,
             target,
