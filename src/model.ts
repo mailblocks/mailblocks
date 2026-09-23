@@ -48,7 +48,10 @@ export type Block = TextBlock;
 export interface TextBlock {
     id: string;
     type: 'text';
-    /** Inline HTML of the paragraph(s). Sanitised on export, not here. */
+    /**
+     * Inline HTML of the paragraph(s), rendered as-is on export. Sanitise it
+     * before storing when it comes from an untrusted source.
+     */
     html: string;
     styles: TextStyles;
 }
