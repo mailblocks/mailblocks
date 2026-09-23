@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>mailblocks playground</title>
+        <link rel="stylesheet" href="./style.css" />
+    </head>
+    <body>
+        <header>
+            <strong>mailblocks playground</strong>
+            <span id="data-version"></span>
+        </header>
+        <main>
+            <section class="panel" id="document-panel">
+                <h2>Document</h2>
+                <textarea id="document-json" spellcheck="false"></textarea>
+                <p class="status" id="document-status"></p>
+                <h2>Targets</h2>
+                <div id="targets"></div>
+            </section>
+            <section class="panel" id="preview-panel">
+                <h2>
+                    Preview
+                    <span class="actions">
+                        <button id="copy-html" type="button">Copy HTML</button>
+                        <button id="download-html" type="button">Download .html</button>
+                    </span>
+                </h2>
+                <iframe id="preview" title="Exported email"></iframe>
+            </section>
+            <section class="panel" id="warnings-panel">
+                <h2>Warnings <span id="warnings-count"></span></h2>
+                <ul id="warnings"></ul>
+            </section>
+        </main>
+        <script type="module" src="./main.ts"></script>
+    </body>
+</html>

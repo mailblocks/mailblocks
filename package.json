@@ -4,6 +4,7 @@
     "version": "0.0.1",
     "description": "Drag-and-drop email designer with client-compatibility checks powered by Can I Email",
     "scripts": {
+        "dev": "vite",
         "data:build": "node scripts/build-compat-data.mjs",
         "test": "vitest run --passWithNoTests",
         "typecheck": "tsc --noEmit",
@@ -44,6 +45,7 @@
     "devDependencies": {
         "prettier": "^3.9.8",
         "typescript": "^7.0.2",
+        "vite": "^8.3.0",
         "vitest": "^5.0.1"
     }
 }
