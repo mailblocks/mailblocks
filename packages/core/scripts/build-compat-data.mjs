@@ -38,6 +38,12 @@ for (const feature of source.data) {
 }
 
 const list = (set) => JSON.stringify([...set].sort());
+
+/** Display names from Can I Email for the given keys, falling back to the key itself. */
+const names = (set, nicenames) =>
+    JSON.stringify(
+        Object.fromEntries([...set].sort().map((key) => [key, nicenames?.[key] ?? key])),
+    );
 const featureLines = Object.entries(features)
     .map(([slug, feature]) => `  ${JSON.stringify(slug)}: ${JSON.stringify(feature)},`)
     .join('\n');
@@ -56,6 +62,12 @@ export const platforms = ${list(platforms)} as const;
 
 export type Family = (typeof families)[number];
 export type Platform = (typeof platforms)[number];
+
+/** Display names, e.g. "Apple Mail" for "apple-mail". */
+export const familyNames: Record<Family, string> = ${names(families, source.nicenames?.family)};
+
+/** Display names, e.g. "Desktop Webmail" for "desktop-webmail". */
+export const platformNames: Record<Platform, string> = ${names(platforms, source.nicenames?.platform)};
 
 export interface Feature {
   title: string;

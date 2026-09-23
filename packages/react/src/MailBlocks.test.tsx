@@ -9,7 +9,7 @@ import {
     type EmailDocument,
     type TextBlock,
 } from '@mailblocks/core';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -294,7 +294,7 @@ describe('<MailBlocks /> with divider and spacer blocks', () => {
         );
 
         addFromMenu('divider');
-        fireEvent.change(screen.getByLabelText('Line style'), { target: { value: 'dashed' } });
+        await userEvent.click(screen.getByRole('radio', { name: 'Dashed' }));
 
         const line = container.querySelector('.mb-divider') as HTMLElement;
         expect(line.style.borderTop).toContain('dashed');
@@ -338,7 +338,7 @@ describe('<MailBlocks /> email and row settings', () => {
         await userEvent.click(firstRow);
         expect(screen.getByRole('heading', { name: 'Row' })).toBeTruthy();
 
-        fireEvent.change(screen.getByLabelText('Columns'), { target: { value: '4' } });
+        await userEvent.click(screen.getByRole('radio', { name: '3 columns' }));
         expect(firstRow.querySelectorAll('.mb-column')).toHaveLength(3);
         expect(screen.getByText('First')).toBeTruthy();
     });
@@ -376,7 +376,9 @@ describe('<MailBlocks /> email and row settings', () => {
         render(<Harness initial={twoRows()} />);
         await userEvent.click(screen.getByRole('button', { name: '+ 2-column row' }));
         expect(screen.getByRole('heading', { name: 'Row' })).toBeTruthy();
-        expect((screen.getByLabelText('Columns') as HTMLSelectElement).value).toBe('1');
+        expect(screen.getByRole('radio', { name: '2 columns' }).getAttribute('aria-checked')).toBe(
+            'true',
+        );
     });
 });
 
@@ -447,5 +449,154 @@ describe('<MailBlocks /> add block menu', () => {
         render(<Harness initial={documentWith(createTextBlock('<p>Hello</p>'))} />);
         await userEvent.click(screen.getByLabelText('Add block'));
         expect(screen.getByRole('heading', { name: 'Email' })).toBeTruthy();
+    });
+});
+
+describe('<MailBlocks /> icon choices', () => {
+    it('aligns the selected text block with the icon buttons', async () => {
+        const { container } = render(
+            <Harness initial={documentWith(createTextBlock('<p>Hello</p>'))} />,
+        );
+        await userEvent.click(screen.getByText('Hello'));
+
+        const left = screen.getByRole('radio', { name: 'Left' });
+        expect(left.getAttribute('aria-checked')).toBe('true');
+        await userEvent.click(screen.getByRole('radio', { name: 'Center' }));
+
+        const block = container.querySelector('.mb-block') as HTMLElement;
+        expect(block.style.textAlign).toBe('center');
+        expect(screen.getByRole('radio', { name: 'Center' }).getAttribute('aria-checked')).toBe(
+            'true',
+        );
+    });
+
+    it('moves the choice with the arrow keys and keeps one tab stop', async () => {
+        render(<Harness initial={documentWith(createTextBlock('<p>Hello</p>'))} />);
+        await userEvent.click(screen.getByText('Hello'));
+
+        const tabbable = () =>
+            screen.getAllByRole('radio').filter((radio) => radio.getAttribute('tabindex') === '0');
+        expect(tabbable().map((radio) => radio.getAttribute('aria-label'))).toEqual(['Left']);
+
+        fireEvent.keyDown(screen.getByRole('radiogroup', { name: 'Align' }), { key: 'ArrowRight' });
+        expect(tabbable().map((radio) => radio.getAttribute('aria-label'))).toEqual(['Center']);
+
+        fireEvent.keyDown(screen.getByRole('radiogroup', { name: 'Align' }), { key: 'ArrowLeft' });
+        fireEvent.keyDown(screen.getByRole('radiogroup', { name: 'Align' }), { key: 'ArrowLeft' });
+        expect(tabbable().map((radio) => radio.getAttribute('aria-label'))).toEqual(['Right']);
+    });
+});
+
+describe('<MailBlocks /> more columns', () => {
+    async function selectFirstRow(container: HTMLElement) {
+        const row = container.querySelector('.mb-row') as HTMLElement;
+        await userEvent.click(row);
+        return row;
+    }
+
+    it('offers a four-column layout', async () => {
+        const { container } = render(
+            <Harness initial={documentWith(createTextBlock('<p>A</p>'))} />,
+        );
+        const row = await selectFirstRow(container);
+
+        await userEvent.click(screen.getByRole('radio', { name: '4 columns' }));
+        expect(row.querySelectorAll('.mb-column')).toHaveLength(4);
+    });
+
+    it('adds columns up to six and removes them down to one', async () => {
+        const { container } = render(
+            <Harness initial={documentWith(createTextBlock('<p>A</p>'))} />,
+        );
+        const row = await selectFirstRow(container);
+        const add = screen.getByRole('button', { name: 'Add column' }) as HTMLButtonElement;
+        const remove = screen.getByRole('button', { name: 'Remove column' }) as HTMLButtonElement;
+
+        expect(remove.disabled).toBe(true);
+        for (let i = 0; i < 5; i++) await userEvent.click(add);
+        expect(row.querySelectorAll('.mb-column')).toHaveLength(6);
+        expect(add.disabled).toBe(true);
+        // No preset has six columns.
+        expect(
+            screen
+                .getAllByRole('radio')
+                .filter((radio) => radio.getAttribute('aria-checked') === 'true'),
+        ).toHaveLength(0);
+
+        for (let i = 0; i < 5; i++) await userEvent.click(remove);
+        expect(row.querySelectorAll('.mb-column')).toHaveLength(1);
+        expect(screen.getByText('A')).toBeTruthy();
+    });
+
+    it('sets a column width and takes the difference from its neighbour', async () => {
+        const doc = createEmptyDocument();
+        doc.rows.push(createRow(2));
+        const { container } = render(<Harness initial={doc} />);
+        const row = await selectFirstRow(container);
+
+        const first = screen.getByLabelText('Column 1') as HTMLInputElement;
+        fireEvent.change(first, { target: { value: '70' } });
+        fireEvent.blur(first);
+
+        const widths = [...row.querySelectorAll('.mb-column')].map(
+            (column) => (column as HTMLElement).style.width,
+        );
+        expect(widths).toEqual(['70%', '30%']);
+        expect((screen.getByLabelText('Column 2') as HTMLInputElement).value).toBe('30');
+    });
+
+    it('keeps columns at 10% or more', async () => {
+        const doc = createEmptyDocument();
+        doc.rows.push(createRow(2));
+        const { container } = render(<Harness initial={doc} />);
+        await selectFirstRow(container);
+
+        const first = screen.getByLabelText('Column 1') as HTMLInputElement;
+        fireEvent.change(first, { target: { value: '99' } });
+        fireEvent.blur(first);
+        expect((screen.getByLabelText('Column 1') as HTMLInputElement).value).toBe('90');
+    });
+});
+
+describe('<MailBlocks /> client report', () => {
+    function withWebp() {
+        return documentWith(createImageBlock('https://example.com/photo.webp', 'Photo'));
+    }
+
+    it('lists every client by how well the email renders there', async () => {
+        render(<Harness initial={withWebp()} />);
+        await userEvent.click(screen.getByRole('tab', { name: 'Clients' }));
+
+        expect(screen.getByText(/Works without issues in/)).toBeTruthy();
+        const problems = screen.getByRole('heading', { name: /Problems/ }).closest('section')!;
+        expect(problems.textContent).toContain('Outlook Windows');
+        const works = screen.getByRole('heading', { name: /Works/ }).closest('section')!;
+        expect(works.textContent).toContain('Apple Mail iOS');
+    });
+
+    it("marks the editor's target clients", async () => {
+        render(<Harness initial={withWebp()} />);
+        await userEvent.click(screen.getByRole('tab', { name: 'Clients' }));
+        expect(screen.getAllByText('target')).toHaveLength(3);
+    });
+
+    it('jumps to the block behind an issue', async () => {
+        render(<Harness initial={withWebp()} />);
+        await userEvent.click(screen.getByRole('tab', { name: 'Clients' }));
+
+        const outlook = screen.getByText('Outlook Windows').closest('details')!;
+        await userEvent.click(within(outlook).getByRole('button', { name: 'Image in row 1' }));
+
+        expect(screen.getByRole('tab', { name: 'Inspector' }).getAttribute('aria-selected')).toBe(
+            'true',
+        );
+        expect(screen.getByRole('heading', { name: 'Image' })).toBeTruthy();
+    });
+
+    it('goes back to the inspector when something is selected on the canvas', async () => {
+        render(<Harness initial={withWebp()} />);
+        await userEvent.click(screen.getByRole('tab', { name: 'Clients' }));
+        await userEvent.click(screen.getByAltText('Photo'));
+        expect(screen.getByRole('heading', { name: 'Image' })).toBeTruthy();
     });
 });

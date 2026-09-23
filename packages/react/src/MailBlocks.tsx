@@ -1,6 +1,7 @@
 import {
     canRedo,
     canUndo,
+    clientReport,
     createHistory,
     findBlock,
     recordChange,
@@ -10,8 +11,9 @@ import {
     type History,
     type Target,
 } from '@mailblocks/core';
-import { useState, type KeyboardEvent } from 'react';
+import { useMemo, useState, type KeyboardEvent } from 'react';
 import { Canvas } from './Canvas';
+import { ClientReport } from './ClientReport';
 import { Inspector } from './Inspector';
 import type { Selection } from './selection';
 
@@ -46,6 +48,7 @@ export function MailBlocks({
     targets = DEFAULT_TARGETS,
 }: MailBlocksProps) {
     const [selection, setSelection] = useState<Selection>();
+    const [panel, setPanel] = useState<'inspector' | 'clients'>('inspector');
     const [history, setHistory] = useState(() => createHistory(doc));
 
     // A document from outside (a load, or an edit the host did not apply)
@@ -79,6 +82,15 @@ export function MailBlocks({
         }
     };
 
+    // Selecting something on the canvas brings the inspector back.
+    const select = (next: Selection | undefined) => {
+        setSelection(next);
+        if (next) setPanel('inspector');
+    };
+
+    // Only worked out while the report is on screen: it checks every client.
+    const report = useMemo(() => (panel === 'clients' ? clientReport(doc) : []), [doc, panel]);
+
     // Resolve on every render so a removed block or row simply stops being selected.
     const selectedBlock = selection?.type === 'block' ? findBlock(doc, selection.id) : undefined;
     const rowIndex =
@@ -106,15 +118,49 @@ export function MailBlocks({
                         Redo
                     </button>
                 </div>
-                <Canvas doc={doc} onChange={change} selection={selection} onSelect={setSelection} />
+                <Canvas doc={doc} onChange={change} selection={selection} onSelect={select} />
             </div>
-            <Inspector
-                doc={doc}
-                onChange={change}
-                selectedBlock={selectedBlock}
-                selectedRow={selectedRow}
-                targets={targets}
-            />
+            <aside className="mb-side">
+                <div className="mb-tabs" role="tablist" aria-label="Side panel">
+                    <button
+                        type="button"
+                        role="tab"
+                        aria-selected={panel === 'inspector'}
+                        onClick={() => setPanel('inspector')}
+                    >
+                        Inspector
+                    </button>
+                    <button
+                        type="button"
+                        role="tab"
+                        aria-selected={panel === 'clients'}
+                        onClick={() => setPanel('clients')}
+                    >
+                        Clients
+                    </button>
+                </div>
+                {panel === 'inspector' ? (
+                    <Inspector
+                        doc={doc}
+                        onChange={change}
+                        selectedBlock={selectedBlock}
+                        selectedRow={selectedRow}
+                        targets={targets}
+                    />
+                ) : (
+                    <div className="mb-inspector mb-report">
+                        <ClientReport
+                            doc={doc}
+                            report={report}
+                            targets={targets}
+                            onShow={(next) => {
+                                setSelection(next);
+                                setPanel('inspector');
+                            }}
+                        />
+                    </div>
+                )}
+            </aside>
         </div>
     );
 }

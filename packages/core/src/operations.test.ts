@@ -14,6 +14,7 @@ import {
     moveRow,
     removeBlock,
     removeRow,
+    resizeColumn,
     setRowColumns,
     updateBlock,
     updateBlockStyles,
@@ -218,5 +219,41 @@ describe('setRowColumns()', () => {
         expect(() => setRowColumns(doc, row.id, [50, 40])).toThrow(RangeError);
         expect(() => setRowColumns(doc, row.id, [110, -10])).toThrow(RangeError);
         expect(() => setRowColumns(doc, row.id, [100 / 3, 100 / 3, 100 / 3])).not.toThrow();
+    });
+});
+
+describe('resizeColumn()', () => {
+    const widthsOf = (doc: EmailDocument) => doc.rows[0]!.columns.map((c) => c.width);
+
+    it('takes the difference from the next column', () => {
+        const { doc, row } = fixture();
+        const three = setRowColumns(doc, row.id, [30, 30, 40]);
+        expect(widthsOf(resizeColumn(three, row.id, 0, 45))).toEqual([45, 15, 40]);
+    });
+
+    it('takes it from the previous column when resizing the last one', () => {
+        const { doc, row } = fixture();
+        expect(widthsOf(resizeColumn(doc, row.id, 1, 70))).toEqual([30, 70]);
+    });
+
+    it('keeps both columns at the minimum width or more', () => {
+        const { doc, row } = fixture();
+        expect(widthsOf(resizeColumn(doc, row.id, 0, 99))).toEqual([90, 10]);
+        expect(widthsOf(resizeColumn(doc, row.id, 0, 2))).toEqual([10, 90]);
+        expect(widthsOf(resizeColumn(doc, row.id, 0, 99, 25))).toEqual([75, 25]);
+    });
+
+    it('keeps the blocks in their columns', () => {
+        const { doc, row, a, c } = fixture();
+        const next = resizeColumn(doc, row.id, 0, 60).rows[0]!.columns;
+        expect(next[0]?.blocks[0]?.id).toBe(a.id);
+        expect(next[1]?.blocks[0]?.id).toBe(c.id);
+    });
+
+    it('leaves a single-column row alone and rejects unknown columns', () => {
+        const { doc, row } = fixture();
+        const single = setRowColumns(doc, row.id, [100]);
+        expect(resizeColumn(single, row.id, 0, 50)).toBe(single);
+        expect(() => resizeColumn(doc, row.id, 5, 50)).toThrow(RangeError);
     });
 });
