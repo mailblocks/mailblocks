@@ -8,6 +8,7 @@ import {
     type Target,
     type TextStyles,
 } from '@mailblocks/core';
+import type { ChangeEvent } from 'react';
 
 interface InspectorProps {
     doc: EmailDocument;
@@ -35,7 +36,7 @@ export function Inspector({ doc, onChange, selected, targets }: InspectorProps) 
     const { block } = selected;
     const s = block.styles;
     const set = (patch: Partial<TextStyles>) => onChange(updateBlockStyles(doc, block.id, patch));
-    const number = (key: keyof TextStyles) => (event: React.ChangeEvent<HTMLInputElement>) =>
+    const number = (key: keyof TextStyles) => (event: ChangeEvent<HTMLInputElement>) =>
         set({ [key]: Number(event.target.value) });
     const warnings = checkBlock(block, targets);
 
