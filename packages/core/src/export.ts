@@ -2,9 +2,11 @@ import type {
     Block,
     ButtonBlock,
     Column,
+    DividerBlock,
     EmailDocument,
     ImageBlock,
     Row,
+    SpacerBlock,
     TextBlock,
 } from './model';
 
@@ -98,6 +100,10 @@ function renderBlock(block: Block, doc: EmailDocument, columnWidth: number): str
             return renderImageBlock(block, columnWidth);
         case 'button':
             return renderButtonBlock(block, doc);
+        case 'divider':
+            return renderDividerBlock(block);
+        case 'spacer':
+            return renderSpacerBlock(block);
     }
 }
 
@@ -191,6 +197,53 @@ function renderButtonBlock(block: ButtonBlock, doc: EmailDocument): string {
 </tr>
 </table>
 </td>
+</tr>`;
+}
+
+/**
+ * The line is the top border of a table: Outlook on Windows draws borders on
+ * tables and cells reliably, but not on `<p>` or `<div>`. The empty cell is
+ * collapsed to zero height so only the border shows.
+ */
+function renderDividerBlock(block: DividerBlock): string {
+    const s = block.styles;
+    const width = formatPercent(Math.min(100, Math.max(1, s.width)));
+    const cellStyles = [
+        `padding:${px(s.paddingTop)} ${px(s.paddingRight)} ${px(s.paddingBottom)} ${px(s.paddingLeft)}`,
+    ];
+    const lineStyles = [
+        // Separate borders so the full thickness is drawn, not half of it.
+        'border-collapse:separate',
+        `width:${width}%`,
+        `border-top:${px(s.thickness)} ${s.lineStyle} ${attr(s.color)}`,
+    ];
+
+    return `<tr>
+<td align="${s.align}" style="${css(cellStyles)}">
+<table role="presentation" align="${s.align}" width="${width}%" cellpadding="0" cellspacing="0" border="0" style="${css(lineStyles)}">
+<tr>
+<td style="height:0;font-size:0;line-height:0;mso-line-height-rule:exactly;">&nbsp;</td>
+</tr>
+</table>
+</td>
+</tr>`;
+}
+
+/**
+ * The height goes on the cell as an attribute and as a matching font size and
+ * line height: CSS height alone is ignored on some elements in Outlook and
+ * turned into min-height by Yahoo.
+ */
+function renderSpacerBlock(block: SpacerBlock): string {
+    const height = Math.max(1, Math.round(block.styles.height));
+    const styles = [
+        `height:${px(height)}`,
+        `font-size:${px(height)}`,
+        `line-height:${px(height)}`,
+        'mso-line-height-rule:exactly',
+    ];
+    return `<tr>
+<td height="${height}" style="${css(styles)}">&nbsp;</td>
 </tr>`;
 }
 

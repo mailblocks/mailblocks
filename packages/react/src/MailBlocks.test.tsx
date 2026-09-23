@@ -261,3 +261,29 @@ describe('<MailBlocks /> with button blocks', () => {
         expect(screen.getAllByText('not supported').length).toBeGreaterThan(0);
     });
 });
+
+describe('<MailBlocks /> with divider and spacer blocks', () => {
+    it('adds a divider and changes its line style', async () => {
+        const { container } = render(
+            <Harness initial={documentWith(createTextBlock('<p>Hello</p>'))} />,
+        );
+
+        await userEvent.click(screen.getByText('+ Divider'));
+        fireEvent.change(screen.getByLabelText('Line style'), { target: { value: 'dashed' } });
+
+        const line = container.querySelector('.mb-divider') as HTMLElement;
+        expect(line.style.borderTop).toContain('dashed');
+    });
+
+    it('adds a spacer and changes its height', async () => {
+        const { container } = render(
+            <Harness initial={documentWith(createTextBlock('<p>Hello</p>'))} />,
+        );
+
+        await userEvent.click(screen.getByText('+ Spacer'));
+        fireEvent.change(screen.getByLabelText('Height'), { target: { value: '40' } });
+
+        const spacer = container.querySelector('.mb-spacer') as HTMLElement;
+        expect(spacer.style.height).toBe('40px');
+    });
+});

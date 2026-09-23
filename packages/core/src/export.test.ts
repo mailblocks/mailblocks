@@ -2,14 +2,17 @@ import { describe, expect, it } from 'vitest';
 import { exportHtml } from './export';
 import {
     createButtonBlock,
+    createDividerBlock,
     createEmptyDocument,
     createImageBlock,
     createRow,
+    createSpacerBlock,
     createTextBlock,
+    type Block,
     type EmailDocument,
 } from './model';
 
-function documentWith(...blocks: ReturnType<typeof createTextBlock>[]): EmailDocument {
+function documentWith(...blocks: Block[]): EmailDocument {
     const doc = createEmptyDocument();
     const row = createRow();
     row.columns[0]?.blocks.push(...blocks);
@@ -193,5 +196,44 @@ describe('exportHtml() with button blocks', () => {
 
     it('skips buttons without a label', () => {
         expect(buttonHtml(createButtonBlock(''))).not.toContain('<a');
+    });
+});
+
+describe('exportHtml() with divider and spacer blocks', () => {
+    function blockHtml(block: Parameters<typeof documentWith>[0]) {
+        return exportHtml(documentWith(block));
+    }
+
+    it('draws a divider as the top border of a table', () => {
+        const block = createDividerBlock();
+        block.styles.color = '#ff0000';
+        block.styles.thickness = 2;
+        block.styles.lineStyle = 'dashed';
+        block.styles.width = 50;
+        block.styles.align = 'left';
+        const html = blockHtml(block);
+
+        expect(html).toContain(
+            '<table role="presentation" align="left" width="50%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;width:50%;border-top:2px dashed #ff0000;">',
+        );
+        expect(html).toContain(
+            '<td style="height:0;font-size:0;line-height:0;mso-line-height-rule:exactly;">&nbsp;</td>',
+        );
+    });
+
+    it('keeps the divider width between 1 and 100 percent', () => {
+        const block = createDividerBlock();
+        block.styles.width = 250;
+        expect(blockHtml(block)).toContain('width="100%"');
+    });
+
+    it('renders a spacer as a cell with matching height, font size and line height', () => {
+        expect(blockHtml(createSpacerBlock(30))).toContain(
+            '<td height="30" style="height:30px;font-size:30px;line-height:30px;mso-line-height-rule:exactly;">&nbsp;</td>',
+        );
+    });
+
+    it('never renders a spacer below one pixel', () => {
+        expect(blockHtml(createSpacerBlock(0))).toContain('<td height="1"');
     });
 });

@@ -1,5 +1,12 @@
 import { supportDetails, type Family, type Platform, type SupportLevel } from './compat';
-import type { Block, ButtonStyles, EmailDocument, ImageStyles, TextStyles } from './model';
+import type {
+    Block,
+    ButtonStyles,
+    DividerStyles,
+    EmailDocument,
+    ImageStyles,
+    TextStyles,
+} from './model';
 
 /** An email client the document should render well in. */
 export interface Target {
@@ -60,6 +67,15 @@ const BUTTON_STYLE_CHECKS: StyleCheck<ButtonStyles>[] = [
     { property: 'padding', feature: 'css-padding', isSet: () => true },
 ];
 
+const DIVIDER_STYLE_CHECKS: StyleCheck<DividerStyles>[] = [
+    { property: 'thickness', feature: 'css-border', isSet: (s) => s.thickness > 0 },
+    {
+        property: 'padding',
+        feature: 'css-padding',
+        isSet: (s) => s.paddingTop + s.paddingRight + s.paddingBottom + s.paddingLeft > 0,
+    },
+];
+
 /** Can I Email feature slug per image file extension. */
 const IMAGE_FORMAT_FEATURES: Record<string, string> = {
     jpg: 'image-jpg',
@@ -118,6 +134,12 @@ export function checkBlock(block: Block, targets: readonly Target[]): CompatWarn
         }
         case 'button':
             return checkStyles(block.id, block.styles, BUTTON_STYLE_CHECKS, targets);
+        case 'divider':
+            return checkStyles(block.id, block.styles, DIVIDER_STYLE_CHECKS, targets);
+        case 'spacer':
+            // Rendered with a height attribute and a matching line height, which
+            // does not depend on any partially supported CSS.
+            return [];
     }
 }
 

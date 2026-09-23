@@ -7,9 +7,11 @@ import {
     type Block,
     type BlockLocation,
     type ButtonBlock,
+    type DividerBlock,
     type CompatWarning,
     type EmailDocument,
     type ImageBlock,
+    type SpacerBlock,
     type Target,
     type TextBlock,
     type TextStyles,
@@ -43,6 +45,12 @@ export function Inspector({ doc, onChange, selected, targets }: InspectorProps) 
             {block.type === 'image' && <ImageFields doc={doc} block={block} onChange={onChange} />}
             {block.type === 'button' && (
                 <ButtonFields doc={doc} block={block} onChange={onChange} />
+            )}
+            {block.type === 'divider' && (
+                <DividerFields doc={doc} block={block} onChange={onChange} />
+            )}
+            {block.type === 'spacer' && (
+                <SpacerFields doc={doc} block={block} onChange={onChange} />
             )}
             <div className="mb-block-actions">
                 <button type="button" disabled={index === 0} onClick={() => move(index - 1)}>
@@ -334,6 +342,94 @@ function ButtonFields({ doc, block, onChange }: FieldsProps<ButtonBlock>) {
                 </label>
             </fieldset>
             <PaddingFields styles={s} onChange={set} legend="Outer padding" />
+        </>
+    );
+}
+
+function DividerFields({ doc, block, onChange }: FieldsProps<DividerBlock>) {
+    const s = block.styles;
+    const set = (patch: Partial<DividerBlock['styles']>) =>
+        onChange(updateBlockStyles(doc, block.id, patch), fieldKey(block.id, patch));
+
+    return (
+        <>
+            <h3>Divider</h3>
+            <label>
+                Color
+                <input
+                    type="color"
+                    value={s.color}
+                    onChange={(event) => set({ color: event.target.value })}
+                />
+            </label>
+            <label>
+                Thickness
+                <input
+                    type="number"
+                    min={1}
+                    value={s.thickness}
+                    onChange={numeric((thickness) => set({ thickness }))}
+                />
+            </label>
+            <label>
+                Line style
+                <select
+                    value={s.lineStyle}
+                    onChange={(event) =>
+                        set({
+                            lineStyle: event.target.value as DividerBlock['styles']['lineStyle'],
+                        })
+                    }
+                >
+                    <option value="solid">Solid</option>
+                    <option value="dashed">Dashed</option>
+                    <option value="dotted">Dotted</option>
+                </select>
+            </label>
+            <label>
+                Width (%)
+                <input
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={s.width}
+                    onChange={numeric((width) => set({ width }))}
+                />
+            </label>
+            <label>
+                Align
+                <select
+                    value={s.align}
+                    onChange={(event) =>
+                        set({ align: event.target.value as DividerBlock['styles']['align'] })
+                    }
+                >
+                    <option value="left">Left</option>
+                    <option value="center">Center</option>
+                    <option value="right">Right</option>
+                </select>
+            </label>
+            <PaddingFields styles={s} onChange={set} />
+        </>
+    );
+}
+
+function SpacerFields({ doc, block, onChange }: FieldsProps<SpacerBlock>) {
+    const set = (patch: Partial<SpacerBlock['styles']>) =>
+        onChange(updateBlockStyles(doc, block.id, patch), fieldKey(block.id, patch));
+
+    return (
+        <>
+            <h3>Spacer</h3>
+            <label>
+                Height
+                <input
+                    type="number"
+                    min={1}
+                    value={block.styles.height}
+                    onChange={numeric((height) => set({ height }))}
+                />
+            </label>
         </>
     );
 }

@@ -276,8 +276,19 @@
     cursor: default;
 }
 
+.mb-spacer {
+    min-height: 0;
+    cursor: pointer;
+    background: repeating-linear-gradient(
+        -45deg,
+        transparent 0 6px,
+        rgba(37, 99, 235, 0.08) 6px 12px
+    );
+}
+
 .mb-add-block {
     display: flex;
+    flex-wrap: wrap;
     justify-content: center;
     gap: 4px;
 }
