@@ -1,0 +1,45 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: system-ui, sans-serif;
+    font-size: 14px;
+}
+
+.app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 16px;
+    border-bottom: 1px solid #e5e7eb;
+    background: #fff;
+}
+
+header button {
+    font: inherit;
+    font-size: 12px;
+    padding: 4px 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    background: #fff;
+    cursor: pointer;
+}
+
+.editor {
+    flex: 1;
+    min-height: 0;
+}
+
+.preview {
+    height: 40vh;
+    border: 0;
+    border-top: 1px solid #e5e7eb;
+}

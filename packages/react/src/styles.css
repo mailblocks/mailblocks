@@ -1,0 +1,204 @@
+/* Default look of the mailblocks editor. Every class is prefixed with mb- so it can be overridden. */
+
+.mb-editor {
+    display: flex;
+    height: 100%;
+    min-height: 0;
+    font-family: system-ui, sans-serif;
+    font-size: 14px;
+    color: #111827;
+}
+
+/* Canvas ------------------------------------------------------------------ */
+
+.mb-canvas {
+    flex: 1;
+    overflow: auto;
+    padding: 32px 16px;
+}
+
+.mb-content {
+    margin: 0 auto;
+    max-width: 100%;
+}
+
+.mb-row {
+    display: flex;
+    align-items: flex-start;
+}
+
+.mb-column {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.mb-block {
+    outline: 1px dashed transparent;
+    outline-offset: -1px;
+    cursor: text;
+    min-height: 1em;
+}
+
+.mb-block:hover {
+    outline-color: #93c5fd;
+}
+
+.mb-block-selected,
+.mb-block-selected:hover {
+    outline: 2px solid #2563eb;
+    outline-offset: -2px;
+}
+
+.mb-block p {
+    margin: 0;
+}
+
+.mb-add {
+    align-self: center;
+    margin: 6px;
+    padding: 4px 10px;
+    font: inherit;
+    font-size: 12px;
+    color: #374151;
+    background: #fff;
+    border: 1px dashed #9ca3af;
+    border-radius: 4px;
+    cursor: pointer;
+    opacity: 0.6;
+}
+
+.mb-add:hover {
+    opacity: 1;
+    border-style: solid;
+}
+
+.mb-add-row {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 0;
+}
+
+/* Inspector --------------------------------------------------------------- */
+
+.mb-inspector {
+    width: 280px;
+    flex-shrink: 0;
+    overflow: auto;
+    padding: 16px;
+    background: #fff;
+    border-left: 1px solid #e5e7eb;
+}
+
+.mb-inspector h3 {
+    margin: 0 0 10px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #6b7280;
+}
+
+.mb-inspector h3 + h3,
+.mb-inspector .mb-remove + h3 {
+    margin-top: 20px;
+}
+
+.mb-inspector label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.mb-inspector input,
+.mb-inspector select {
+    width: 140px;
+    font: inherit;
+    padding: 3px 6px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+}
+
+.mb-inspector input[type='color'] {
+    padding: 0 2px;
+    height: 26px;
+}
+
+.mb-inspector fieldset {
+    margin: 0 0 12px;
+    padding: 8px 10px;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+}
+
+.mb-inspector legend {
+    font-size: 12px;
+    color: #6b7280;
+    padding: 0 4px;
+}
+
+.mb-inspector fieldset input {
+    width: 70px;
+}
+
+.mb-remove {
+    font: inherit;
+    font-size: 12px;
+    padding: 4px 10px;
+    color: #b91c1c;
+    background: #fff;
+    border: 1px solid #fca5a5;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.mb-muted {
+    color: #6b7280;
+    font-weight: normal;
+}
+
+.mb-warnings,
+.mb-notes {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.mb-warnings > li {
+    padding: 8px 0;
+    border-top: 1px solid #e5e7eb;
+    font-size: 13px;
+}
+
+.mb-notes {
+    margin: 4px 0 0;
+    padding-left: 16px;
+    list-style: disc;
+    font-size: 12px;
+    color: #4b5563;
+}
+
+.mb-level {
+    display: inline-block;
+    margin-right: 6px;
+    padding: 1px 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #fff;
+    border-radius: 999px;
+}
+
+.mb-level-n {
+    background: #dc2626;
+}
+
+.mb-level-a {
+    background: #d97706;
+}
+
+.mb-level-u {
+    background: #6b7280;
+}
