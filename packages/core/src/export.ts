@@ -46,7 +46,7 @@ p { margin: 0; }
 </style>
 </head>
 <body style="margin:0;padding:0;background-color:${attr(backgroundColor)};">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:${attr(backgroundColor)};">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${attr(backgroundColor)}" style="background-color:${attr(backgroundColor)};">
 <tr>
 <td align="center" style="padding:0;">
 <table role="presentation" width="${contentWidth}" cellpadding="0" cellspacing="0" border="0" bgcolor="${attr(contentBackgroundColor)}" style="width:${contentWidth}px;max-width:${contentWidth}px;background-color:${attr(contentBackgroundColor)};font-family:${attr(fontFamily)};">
@@ -67,9 +67,11 @@ function renderRow(row: Row, doc: EmailDocument): string {
         backgroundColor !== undefined && `background-color:${attr(backgroundColor)}`,
     ];
     const columns = row.columns.map((column) => renderColumn(column, doc)).join('\n');
+    // The bgcolor attribute backs up the CSS, which some webmails only honour for colour keywords.
+    const bgcolor = backgroundColor !== undefined ? ` bgcolor="${attr(backgroundColor)}"` : '';
 
     return `<tr>
-<td style="${css(styles)}">
+<td${bgcolor} style="${css(styles)}">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
 <tr>
 ${columns}

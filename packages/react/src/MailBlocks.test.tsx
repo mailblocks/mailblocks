@@ -354,3 +354,33 @@ describe('<MailBlocks /> email and row settings', () => {
         expect((screen.getByLabelText('Columns') as HTMLSelectElement).value).toBe('1');
     });
 });
+
+describe('<MailBlocks /> warnings for rows and the email', () => {
+    it("lists the selected row's own warnings", async () => {
+        const doc = documentWith(createTextBlock('<p>Hello</p>'));
+        doc.rows[0]!.styles.paddingTop = 20;
+        const { container } = render(
+            <MailBlocks
+                document={doc}
+                onChange={vi.fn()}
+                targets={[{ family: 'outlook', platform: 'windows' }]}
+            />,
+        );
+
+        await userEvent.click(container.querySelector('.mb-row') as HTMLElement);
+        expect(screen.getByText('padding')).toBeTruthy();
+        expect(screen.getByText(/same row/)).toBeTruthy();
+    });
+
+    it("lists the email's warnings when nothing is selected", () => {
+        render(
+            <MailBlocks
+                document={createEmptyDocument()}
+                onChange={vi.fn()}
+                targets={[{ family: 'orange', platform: 'desktop-webmail' }]}
+            />,
+        );
+        expect(screen.getByText('backgroundColor')).toBeTruthy();
+        expect(screen.getByText(/color keywords/)).toBeTruthy();
+    });
+});

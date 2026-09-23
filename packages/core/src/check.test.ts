@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { check, checkBlock, imageFormatFeature, type Target } from './check';
+import {
+    check,
+    checkBlock,
+    checkDocument,
+    checkRow,
+    imageFormatFeature,
+    type Target,
+} from './check';
 import {
     createButtonBlock,
     createDividerBlock,
@@ -42,7 +49,9 @@ describe('check()', () => {
             'lineHeight',
             'padding',
         ]);
-        expect(warnings.every((w) => w.blockId === block.id)).toBe(true);
+        expect(warnings.every((w) => w.subject.type === 'block' && w.subject.id === block.id)).toBe(
+            true,
+        );
         expect(warnings.every((w) => w.target === OUTLOOK_WINDOWS)).toBe(true);
         expect(warnings.every((w) => w.level === 'a')).toBe(true);
     });
@@ -64,7 +73,10 @@ describe('check()', () => {
         doc.rows.push(row);
 
         const warnings = check(doc, [OUTLOOK_WINDOWS]);
-        expect(new Set(warnings.map((w) => w.blockId)).size).toBe(3);
+        const blockIds = warnings.flatMap((w) =>
+            w.subject.type === 'block' ? [w.subject.id] : [],
+        );
+        expect(new Set(blockIds).size).toBe(3);
     });
 });
 
@@ -168,5 +180,56 @@ describe('divider and spacer blocks', () => {
 
     it('never warns about spacers', () => {
         expect(checkBlock(createSpacerBlock(), [OUTLOOK_WINDOWS, GMAIL_DESKTOP])).toEqual([]);
+    });
+});
+
+describe('rows and email settings', () => {
+    const ORANGE_WEBMAIL: Target = { family: 'orange', platform: 'desktop-webmail' };
+
+    it('warns about vertical row padding in Outlook on Windows, with the same-row note', () => {
+        const row = createRow();
+        row.styles.paddingTop = 20;
+        const [warning] = checkRow(row, [OUTLOOK_WINDOWS]);
+
+        expect(warning?.subject).toEqual({ type: 'row', id: row.id });
+        expect(warning?.property).toBe('padding');
+        expect(warning?.level).toBe('a');
+        expect(warning?.notes.join(' ')).toMatch(/same row/);
+    });
+
+    it('checks a row background only when the row has one', () => {
+        const row = createRow();
+        expect(checkRow(row, [ORANGE_WEBMAIL])).toEqual([]);
+
+        row.styles.backgroundColor = '#ffffff';
+        const [warning] = checkRow(row, [ORANGE_WEBMAIL]);
+        expect(warning?.property).toBe('backgroundColor');
+        expect(warning?.feature).toBe('css-background-color');
+    });
+
+    it('warns once about the email backgrounds for clients that only take colour keywords', () => {
+        const warnings = checkDocument(createEmptyDocument(), [ORANGE_WEBMAIL]);
+        expect(warnings.map((w) => w.property)).toEqual(['backgroundColor']);
+        expect(warnings[0]?.subject).toEqual({ type: 'document' });
+        expect(warnings[0]?.notes.join(' ')).toMatch(/color keywords/);
+    });
+
+    it('includes email, row and block warnings in check(), in that order', () => {
+        const doc = createEmptyDocument();
+        const row = createRow();
+        row.styles.backgroundColor = '#eeeeee';
+        row.columns[0]?.blocks.push(createButtonBlock());
+        doc.rows.push(row);
+
+        const types = check(doc, [ORANGE_WEBMAIL]).map((w) => w.subject.type);
+        expect(types.slice(0, 2)).toEqual(['document', 'row']);
+        expect(types.length).toBeGreaterThan(2);
+        expect(types.slice(2).every((type) => type === 'block')).toBe(true);
+    });
+
+    it('has nothing to say about a plain document for Gmail and Outlook', () => {
+        const doc = createEmptyDocument();
+        doc.rows.push(createRow());
+        expect(check(doc, [GMAIL_DESKTOP, OUTLOOK_WINDOWS])).toEqual([]);
     });
 });

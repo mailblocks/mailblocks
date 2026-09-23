@@ -1,5 +1,12 @@
-import { updateDocumentStyles, type DocumentStyles, type EmailDocument } from '@mailblocks/core';
+import {
+    checkDocument,
+    updateDocumentStyles,
+    type DocumentStyles,
+    type EmailDocument,
+    type Target,
+} from '@mailblocks/core';
 import { fieldKey, numeric } from './fields';
+import { Warnings } from './Warnings';
 
 /** Font stacks that render the same, or close to it, in every email client. */
 const SAFE_FONTS = [
@@ -16,10 +23,11 @@ const SAFE_FONTS = [
 interface DocumentSettingsProps {
     doc: EmailDocument;
     onChange: (doc: EmailDocument, mergeKey?: string) => void;
+    targets: Target[];
 }
 
 /** Settings of the whole email, shown when nothing is selected. */
-export function DocumentSettings({ doc, onChange }: DocumentSettingsProps) {
+export function DocumentSettings({ doc, onChange, targets }: DocumentSettingsProps) {
     const s = doc.styles;
     const set = (patch: Partial<DocumentStyles>) =>
         onChange(updateDocumentStyles(doc, patch), fieldKey('document', patch));
@@ -68,6 +76,7 @@ export function DocumentSettings({ doc, onChange }: DocumentSettingsProps) {
                 </select>
             </label>
             <p className="mb-muted">Click a row or a block to edit it.</p>
+            <Warnings warnings={checkDocument(doc, targets)} />
         </>
     );
 }

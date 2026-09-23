@@ -1,4 +1,5 @@
 import {
+    checkRow,
     moveRow,
     removeRow,
     setRowColumns,
@@ -6,8 +7,10 @@ import {
     type EmailDocument,
     type Row,
     type RowStyles,
+    type Target,
 } from '@mailblocks/core';
 import { fieldKey, numeric } from './fields';
+import { Warnings } from './Warnings';
 
 /** Column layouts offered for a row, as percentage widths. */
 const LAYOUTS: { label: string; widths: number[] }[] = [
@@ -33,10 +36,11 @@ interface RowSettingsProps {
     row: Row;
     index: number;
     onChange: (doc: EmailDocument, mergeKey?: string) => void;
+    targets: Target[];
 }
 
 /** Settings of the selected row: layout, background, spacing, order. */
-export function RowSettings({ doc, row, index, onChange }: RowSettingsProps) {
+export function RowSettings({ doc, row, index, onChange, targets }: RowSettingsProps) {
     const s = row.styles;
     const set = (patch: Partial<RowStyles>) =>
         onChange(updateRowStyles(doc, row.id, patch), fieldKey(row.id, patch));
@@ -130,6 +134,7 @@ export function RowSettings({ doc, row, index, onChange }: RowSettingsProps) {
                     Remove row
                 </button>
             </div>
+            <Warnings warnings={checkRow(row, targets)} />
         </>
     );
 }

@@ -150,7 +150,11 @@ function renderWarnings(warnings: CompatWarning[]): void {
         title.textContent = `${warning.property} in ${warning.target.family} ${warning.target.platform}`;
         const meta = document.createElement('div');
         meta.className = 'meta';
-        meta.textContent = `${warning.feature}, tested on ${warning.version}, block ${warning.blockId.slice(0, 8)}`;
+        const subject =
+            warning.subject.type === 'document'
+                ? 'email settings'
+                : `${warning.subject.type} ${warning.subject.id.slice(0, 8)}`;
+        meta.textContent = `${warning.feature}, tested on ${warning.version}, ${subject}`;
         item.append(level, title, meta);
         if (warning.notes.length) {
             const notes = document.createElement('ul');

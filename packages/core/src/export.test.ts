@@ -85,7 +85,7 @@ describe('exportHtml()', () => {
         doc.rows.push(row);
 
         expect(exportHtml(doc)).toContain(
-            '<td style="padding:20px 0 30px 0;background-color:#ffffff;">',
+            '<td bgcolor="#ffffff" style="padding:20px 0 30px 0;background-color:#ffffff;">',
         );
     });
 
@@ -235,5 +235,25 @@ describe('exportHtml() with divider and spacer blocks', () => {
 
     it('never renders a spacer below one pixel', () => {
         expect(blockHtml(createSpacerBlock(0))).toContain('<td height="1"');
+    });
+});
+
+describe('exportHtml() background fallbacks', () => {
+    it('sets bgcolor on the outer table and on coloured rows only', () => {
+        const doc = createEmptyDocument();
+        doc.styles.backgroundColor = '#abcdef';
+        const plain = createRow();
+        const coloured = createRow();
+        coloured.styles.backgroundColor = '#123456';
+        doc.rows.push(plain, coloured);
+        const html = exportHtml(doc);
+
+        expect(html).toContain(
+            '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#abcdef" style="background-color:#abcdef;">',
+        );
+        expect(html).toContain(
+            '<td bgcolor="#123456" style="padding:0px 0 0px 0;background-color:#123456;">',
+        );
+        expect(html).toContain('<td style="padding:0px 0 0px 0;">');
     });
 });
