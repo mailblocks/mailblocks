@@ -35,6 +35,11 @@ function Harness({
     );
 }
 
+/** Picks a block type from the "Add block" menu of the given column. */
+function addFromMenu(type: string, column = 0) {
+    fireEvent.change(screen.getAllByLabelText('Add block')[column]!, { target: { value: type } });
+}
+
 function documentWith(...blocks: Block[]): EmailDocument {
     const doc = createEmptyDocument();
     const row = createRow();
@@ -73,7 +78,7 @@ describe('<MailBlocks />', () => {
         const onChange = vi.fn<(doc: EmailDocument) => void>();
         render(<MailBlocks document={doc} onChange={onChange} />);
 
-        await userEvent.click(screen.getByText('+ Text'));
+        addFromMenu('text');
 
         const next = onChange.mock.calls[0]?.[0];
         expect(next?.rows[0]?.columns[0]?.blocks).toHaveLength(2);
@@ -116,7 +121,7 @@ describe('<MailBlocks /> with image blocks', () => {
         const onChange = vi.fn<(doc: EmailDocument) => void>();
         render(<Harness initial={doc} onChange={onChange} />);
 
-        await userEvent.click(screen.getByText('+ Image'));
+        addFromMenu('image');
 
         const next = onChange.mock.calls[0]?.[0];
         const added = next?.rows[0]?.columns[0]?.blocks[1];
@@ -256,7 +261,7 @@ describe('<MailBlocks /> with button blocks', () => {
     it('adds a button and changes its label from the inspector', async () => {
         render(<Harness initial={documentWith(createTextBlock('<p>Hello</p>'))} />);
 
-        await userEvent.click(screen.getByText('+ Button'));
+        addFromMenu('button');
         fireEvent.change(screen.getByLabelText('Label'), { target: { value: 'Buy now' } });
 
         expect(screen.getByText('Buy now')).toBeTruthy();
@@ -288,7 +293,7 @@ describe('<MailBlocks /> with divider and spacer blocks', () => {
             <Harness initial={documentWith(createTextBlock('<p>Hello</p>'))} />,
         );
 
-        await userEvent.click(screen.getByText('+ Divider'));
+        addFromMenu('divider');
         fireEvent.change(screen.getByLabelText('Line style'), { target: { value: 'dashed' } });
 
         const line = container.querySelector('.mb-divider') as HTMLElement;
@@ -300,7 +305,7 @@ describe('<MailBlocks /> with divider and spacer blocks', () => {
             <Harness initial={documentWith(createTextBlock('<p>Hello</p>'))} />,
         );
 
-        await userEvent.click(screen.getByText('+ Spacer'));
+        addFromMenu('spacer');
         fireEvent.change(screen.getByLabelText('Height'), { target: { value: '40' } });
 
         const spacer = container.querySelector('.mb-spacer') as HTMLElement;
@@ -402,5 +407,45 @@ describe('<MailBlocks /> warnings for rows and the email', () => {
         );
         expect(screen.getByText('backgroundColor')).toBeTruthy();
         expect(screen.getByText(/color keywords/)).toBeTruthy();
+    });
+});
+
+describe('<MailBlocks /> add block menu', () => {
+    it('offers one menu per column with every block type', () => {
+        const doc = documentWith(createTextBlock('<p>Hello</p>'));
+        doc.rows.push(createRow(2));
+        render(<Harness initial={doc} />);
+
+        const menus = screen.getAllByLabelText('Add block') as HTMLSelectElement[];
+        expect(menus).toHaveLength(3);
+        expect([...menus[0]!.options].map((option) => option.textContent)).toEqual([
+            '+ Add block',
+            'Text',
+            'Image',
+            'Button',
+            'Divider',
+            'Spacer',
+        ]);
+    });
+
+    it('adds the chosen block to that column, selects it and resets the menu', () => {
+        const doc = createEmptyDocument();
+        doc.rows.push(createRow(2));
+        const onChange = vi.fn<(doc: EmailDocument) => void>();
+        render(<Harness initial={doc} onChange={onChange} />);
+
+        addFromMenu('button', 1);
+
+        const next = onChange.mock.calls[0]?.[0];
+        expect(next?.rows[0]?.columns[0]?.blocks).toHaveLength(0);
+        expect(next?.rows[0]?.columns[1]?.blocks[0]?.type).toBe('button');
+        expect(screen.getByRole('heading', { name: 'Button' })).toBeTruthy();
+        expect((screen.getAllByLabelText('Add block')[1] as HTMLSelectElement).value).toBe('');
+    });
+
+    it('does not select the row when the menu is clicked', async () => {
+        render(<Harness initial={documentWith(createTextBlock('<p>Hello</p>'))} />);
+        await userEvent.click(screen.getByLabelText('Add block'));
+        expect(screen.getByRole('heading', { name: 'Email' })).toBeTruthy();
     });
 });

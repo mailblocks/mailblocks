@@ -18,6 +18,15 @@ import type { Selection } from './selection';
 import { SpacerBlockView } from './SpacerBlockView';
 import { TextBlockView } from './TextBlockView';
 
+/** Block types offered by the "Add block" menu, in menu order. */
+const BLOCK_TYPES: { type: Block['type']; label: string; create: () => Block }[] = [
+    { type: 'text', label: 'Text', create: () => createTextBlock('<p>New text</p>') },
+    { type: 'image', label: 'Image', create: () => createImageBlock() },
+    { type: 'button', label: 'Button', create: () => createButtonBlock() },
+    { type: 'divider', label: 'Divider', create: () => createDividerBlock() },
+    { type: 'spacer', label: 'Spacer', create: () => createSpacerBlock() },
+];
+
 interface CanvasProps {
     doc: EmailDocument;
     /** `mergeKey` groups consecutive edits of the same thing into one undo step. */
@@ -86,56 +95,28 @@ export function Canvas({ doc, onChange, selection, onSelect }: CanvasProps) {
                                     />
                                 ))}
                                 <div className="mb-add-block">
-                                    <button
-                                        type="button"
+                                    <select
                                         className="mb-add"
-                                        onClick={(event) => {
-                                            event.stopPropagation();
-                                            add(column.id, createTextBlock('<p>New text</p>'));
+                                        aria-label="Add block"
+                                        value=""
+                                        // Keep the click from selecting the row behind the menu.
+                                        onClick={(event) => event.stopPropagation()}
+                                        onChange={(event) => {
+                                            const chosen = BLOCK_TYPES.find(
+                                                (option) => option.type === event.target.value,
+                                            );
+                                            if (chosen) add(column.id, chosen.create());
                                         }}
                                     >
-                                        + Text
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="mb-add"
-                                        onClick={(event) => {
-                                            event.stopPropagation();
-                                            add(column.id, createImageBlock());
-                                        }}
-                                    >
-                                        + Image
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="mb-add"
-                                        onClick={(event) => {
-                                            event.stopPropagation();
-                                            add(column.id, createButtonBlock());
-                                        }}
-                                    >
-                                        + Button
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="mb-add"
-                                        onClick={(event) => {
-                                            event.stopPropagation();
-                                            add(column.id, createDividerBlock());
-                                        }}
-                                    >
-                                        + Divider
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="mb-add"
-                                        onClick={(event) => {
-                                            event.stopPropagation();
-                                            add(column.id, createSpacerBlock());
-                                        }}
-                                    >
-                                        + Spacer
-                                    </button>
+                                        <option value="" disabled>
+                                            + Add block
+                                        </option>
+                                        {BLOCK_TYPES.map((option) => (
+                                            <option key={option.type} value={option.type}>
+                                                {option.label}
+                                            </option>
+                                        ))}
+                                    </select>
                                 </div>
                             </div>
                         ))}

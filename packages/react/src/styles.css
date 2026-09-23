@@ -300,7 +300,9 @@
 
 .mb-add-block {
     display: flex;
-    flex-wrap: wrap;
     justify-content: center;
-    gap: 4px;
+}
+
+select.mb-add {
+    padding-right: 6px;
 }
