@@ -15,13 +15,16 @@ import {
     createRow,
     createSpacerBlock,
     createTextBlock,
+    type Block,
     type EmailDocument,
 } from './model';
 
 const GMAIL_DESKTOP: Target = { family: 'gmail', platform: 'desktop-webmail' };
 const OUTLOOK_WINDOWS: Target = { family: 'outlook', platform: 'windows' };
+/** Only honours CSS Level 1 colour keywords in background-color. */
+const ORANGE_WEBMAIL: Target = { family: 'orange', platform: 'desktop-webmail' };
 
-function documentWith(...blocks: ReturnType<typeof createTextBlock>[]): EmailDocument {
+function documentWith(...blocks: Block[]): EmailDocument {
     const doc = createEmptyDocument();
     const row = createRow();
     row.columns[0]?.blocks.push(...blocks);
@@ -39,37 +42,22 @@ describe('check()', () => {
         expect(check(documentWith(createTextBlock()), [GMAIL_DESKTOP])).toEqual([]);
     });
 
-    it('warns once per unsupported style per target', () => {
-        // Outlook on Windows only partially supports font-size, line-height and padding.
-        const block = createTextBlock();
-        const warnings = check(documentWith(block), [OUTLOOK_WINDOWS]);
+    it('warns once per unsupported style per target, with the block as subject', () => {
+        const block = createButtonBlock();
+        const warnings = check(documentWith(block), [OUTLOOK_WINDOWS, GMAIL_DESKTOP]);
 
-        expect(warnings.map((w) => w.property).sort()).toEqual([
-            'fontSize',
-            'lineHeight',
-            'padding',
-        ]);
-        expect(warnings.every((w) => w.subject.type === 'block' && w.subject.id === block.id)).toBe(
-            true,
-        );
-        expect(warnings.every((w) => w.target === OUTLOOK_WINDOWS)).toBe(true);
-        expect(warnings.every((w) => w.level === 'a')).toBe(true);
-    });
-
-    it('explains partial support with Can I Email footnotes', () => {
-        const [warning] = check(documentWith(createTextBlock()), [OUTLOOK_WINDOWS]).filter(
-            (w) => w.property === 'fontSize',
-        );
-        expect(warning?.feature).toBe('css-font-size');
-        expect(warning?.version).toBe('2021');
-        expect(warning?.notes.length).toBeGreaterThan(0);
+        // Rounded corners are the only thing Outlook on Windows cannot show here.
+        expect(warnings.map((w) => w.property)).toEqual(['borderRadius']);
+        expect(warnings[0]?.subject).toEqual({ type: 'block', id: block.id });
+        expect(warnings[0]?.target).toBe(OUTLOOK_WINDOWS);
+        expect(warnings[0]?.version).toBe('2019');
     });
 
     it('checks every block in every column', () => {
         const doc = createEmptyDocument();
         const row = createRow(2);
-        row.columns[0]?.blocks.push(createTextBlock());
-        row.columns[1]?.blocks.push(createTextBlock(), createTextBlock());
+        row.columns[0]?.blocks.push(createButtonBlock());
+        row.columns[1]?.blocks.push(createButtonBlock(), createButtonBlock());
         doc.rows.push(row);
 
         const warnings = check(doc, [OUTLOOK_WINDOWS]);
@@ -87,15 +75,49 @@ describe('checkBlock()', () => {
         expect(properties).not.toContain('fontFamily');
         expect(properties).not.toContain('textAlign');
     });
+});
 
-    it('checks a style once the block sets it', () => {
+describe('notes that do not apply to the exported values', () => {
+    it('drops partial support that only concerns values the export never writes', () => {
+        // Outlook on Windows: font-size lacks `rem`, line-height needs mso-line-height-rule
+        // (always added), padding is only on table cells (always the case) and text-align
+        // lacks `start`, `end` and `match-parent` (never written).
         const block = createTextBlock();
         block.styles.textAlign = 'center';
-        const warning = checkBlock(block, [OUTLOOK_WINDOWS]).find(
-            (w) => w.property === 'textAlign',
-        );
-        expect(warning?.feature).toBe('css-text-align');
+        expect(checkBlock(block, [OUTLOOK_WINDOWS])).toEqual([]);
+    });
+
+    it('keeps a note when the value it is about is used', () => {
+        const divider = createDividerBlock();
+        divider.styles.thickness = 10;
+        const [warning] = checkBlock(divider, [OUTLOOK_WINDOWS]);
+
+        expect(warning?.property).toBe('thickness');
         expect(warning?.level).toBe('a');
+        // Only the note that applies is kept; the one about <p> and <div> is not.
+        expect(warning?.notes).toHaveLength(1);
+        expect(warning?.notes[0]).toMatch(/8px/);
+    });
+
+    it('drops the border note for dividers of 8px or less', () => {
+        const divider = createDividerBlock();
+        divider.styles.thickness = 8;
+        expect(checkBlock(divider, [OUTLOOK_WINDOWS])).toEqual([]);
+    });
+
+    it('treats CSS Level 1 colour keywords as supported where only they work', () => {
+        const row = createRow();
+        row.styles.backgroundColor = 'White';
+        expect(checkRow(row, [ORANGE_WEBMAIL])).toEqual([]);
+        row.styles.backgroundColor = '#ffffff';
+        expect(checkRow(row, [ORANGE_WEBMAIL]).map((w) => w.property)).toEqual(['backgroundColor']);
+    });
+
+    it('never narrows down unsupported or unknown results', () => {
+        // Rounded corners are "n" in Outlook on Windows: the VML note has no rule and stays.
+        const [warning] = checkBlock(createButtonBlock(), [OUTLOOK_WINDOWS]);
+        expect(warning?.level).toBe('n');
+        expect(warning?.notes.join(' ')).toMatch(/VML/);
     });
 });
 
@@ -165,12 +187,13 @@ describe('button blocks', () => {
 });
 
 describe('divider and spacer blocks', () => {
-    it('warns about divider borders in Outlook on Windows, with the 8px note', () => {
-        const warning = checkBlock(createDividerBlock(), [OUTLOOK_WINDOWS]).find(
+    it('warns about thick divider borders in Outlook on Windows', () => {
+        const divider = createDividerBlock();
+        divider.styles.thickness = 12;
+        const warning = checkBlock(divider, [OUTLOOK_WINDOWS]).find(
             (w) => w.property === 'thickness',
         );
         expect(warning?.feature).toBe('css-border');
-        expect(warning?.level).toBe('a');
         expect(warning?.notes.join(' ')).toMatch(/8px/);
     });
 
@@ -184,17 +207,19 @@ describe('divider and spacer blocks', () => {
 });
 
 describe('rows and email settings', () => {
-    const ORANGE_WEBMAIL: Target = { family: 'orange', platform: 'desktop-webmail' };
-
-    it('warns about vertical row padding in Outlook on Windows, with the same-row note', () => {
+    it('does not warn about row padding in Outlook on Windows', () => {
+        // Both padding notes are about situations the export avoids: padding outside
+        // table cells, and padded cells sharing a table row with other cells.
         const row = createRow();
         row.styles.paddingTop = 20;
-        const [warning] = checkRow(row, [OUTLOOK_WINDOWS]);
+        expect(checkRow(row, [OUTLOOK_WINDOWS])).toEqual([]);
+    });
 
+    it('names the row as the subject of its warnings', () => {
+        const row = createRow();
+        row.styles.backgroundColor = '#ffffff';
+        const [warning] = checkRow(row, [ORANGE_WEBMAIL]);
         expect(warning?.subject).toEqual({ type: 'row', id: row.id });
-        expect(warning?.property).toBe('padding');
-        expect(warning?.level).toBe('a');
-        expect(warning?.notes.join(' ')).toMatch(/same row/);
     });
 
     it('checks a row background only when the row has one', () => {

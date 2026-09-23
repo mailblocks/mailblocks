@@ -13,9 +13,12 @@ not supported and why, and exports table-based HTML that those clients can actua
 ## What works today
 
 - **Document model** – rows, columns and blocks: text, image, button, divider and spacer.
-- **Compatibility check** – `check(doc, targets)` returns a warning for every style a target
-  client does not fully support, with Can I Email's footnotes explaining what exactly is missing.
-  Image formats are checked too, so a `.webp` or `.svg` warns for clients that cannot show it.
+- **Compatibility check** – `check(doc, targets)` returns a warning for every style of the
+  email, its rows and its blocks that a target client does not fully support, with Can I Email's
+  footnotes explaining what exactly is missing. Footnotes about values the export never writes
+  (a `start` alignment, `rem` sizes) or problems it already works around (padding outside table
+  cells) are left out, and a partial support with nothing left is not reported. Image formats are
+  checked too, so a `.webp` or `.svg` warns for clients that cannot show it.
 - **HTML export** – `exportHtml(doc)` renders nested tables with inline styles, pixel units and
   the Outlook-specific hints that keep it from mangling the result: buttons whose colour and
   padding sit on a table cell, dividers drawn as table borders, spacers sized with cell heights.
@@ -38,6 +41,7 @@ Neither package has runtime dependencies beyond React for the editor.
 ```ts
 import {
     check,
+    createButtonBlock,
     createEmptyDocument,
     createRow,
     createTextBlock,
@@ -47,16 +51,16 @@ import {
 const doc = createEmptyDocument();
 const row = createRow(2);
 row.columns[0].blocks.push(createTextBlock('<p>Left column</p>'));
-row.columns[1].blocks.push(createTextBlock('<p>Right column</p>'));
+row.columns[1].blocks.push(createButtonBlock('Shop now', 'https://example.com'));
 doc.rows.push(row);
 
 check(doc, [
     { family: 'gmail', platform: 'desktop-webmail' },
     { family: 'outlook', platform: 'windows' },
 ]);
-// [{ property: 'lineHeight', feature: 'css-line-height', level: 'a',
-//    target: { family: 'outlook', platform: 'windows' },
-//    notes: ['Buggy. `em` and `px` units behave weirdly. Use `mso-line-height-rule:exactly`.'], ... }]
+// [{ subject: { type: 'block', id: '…' }, property: 'borderRadius',
+//    feature: 'css-border-radius', level: 'n', target: { family: 'outlook', platform: 'windows' },
+//    notes: ['Round corners can be used in VML with the `RoundRect` element. …'], ... }]
 
 exportHtml(doc);
 // '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" ...'
@@ -114,11 +118,9 @@ and rerun the script to pick up new data.
 
 ## Roadmap
 
-1. Value-aware warnings, so a `text-align: center` is not flagged for a note about `start`.
-2. Compatibility checks for rows and email settings, not only blocks.
-3. Rounded buttons in Outlook on Windows through VML.
-4. An Angular package on top of the same core.
-5. A first release on npm.
+1. Rounded buttons in Outlook on Windows through VML.
+2. An Angular package on top of the same core.
+3. A first release on npm.
 
 ## Contributing
 
