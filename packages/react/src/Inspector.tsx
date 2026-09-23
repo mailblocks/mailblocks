@@ -1,5 +1,6 @@
 import {
     checkBlock,
+    moveBlock,
     removeBlock,
     updateBlock,
     updateBlockStyles,
@@ -32,19 +33,32 @@ export function Inspector({ doc, onChange, selected, targets }: InspectorProps) 
         );
     }
 
-    const { block } = selected;
+    const { block, column, index } = selected;
+    const move = (to: number) => onChange(moveBlock(doc, block.id, column.id, to));
 
     return (
         <aside className="mb-inspector">
             {block.type === 'text' && <TextFields doc={doc} block={block} onChange={onChange} />}
             {block.type === 'image' && <ImageFields doc={doc} block={block} onChange={onChange} />}
-            <button
-                type="button"
-                className="mb-remove"
-                onClick={() => onChange(removeBlock(doc, block.id))}
-            >
-                Remove block
-            </button>
+            <div className="mb-block-actions">
+                <button type="button" disabled={index === 0} onClick={() => move(index - 1)}>
+                    Move up
+                </button>
+                <button
+                    type="button"
+                    disabled={index === column.blocks.length - 1}
+                    onClick={() => move(index + 1)}
+                >
+                    Move down
+                </button>
+                <button
+                    type="button"
+                    className="mb-remove"
+                    onClick={() => onChange(removeBlock(doc, block.id))}
+                >
+                    Remove block
+                </button>
+            </div>
             <Warnings warnings={checkBlock(block, targets)} />
         </aside>
     );
