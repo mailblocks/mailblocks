@@ -5,7 +5,7 @@ import {
     exportHtml,
     type EmailDocument,
 } from '@mailblocks/core';
-import { MailBlocks } from '@mailblocks/react';
+import { MailBlocks, type MailBlocksProps } from '@mailblocks/react';
 import '@mailblocks/react/styles.css';
 import { StrictMode, useState } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -36,17 +36,30 @@ function sampleDocument(): EmailDocument {
 function App() {
     const [doc, setDoc] = useState(sampleDocument);
     const [showPreview, setShowPreview] = useState(false);
+    const [theme, setTheme] = useState<MailBlocksProps['theme']>('system');
 
     return (
         <div className="app">
             <header>
                 <strong>mailblocks react playground</strong>
+                <span className="spacer" />
+                <label>
+                    Theme{' '}
+                    <select
+                        value={theme}
+                        onChange={(event) => setTheme(event.target.value as typeof theme)}
+                    >
+                        <option value="system">System</option>
+                        <option value="light">Light</option>
+                        <option value="dark">Dark</option>
+                    </select>
+                </label>
                 <button type="button" onClick={() => setShowPreview((value) => !value)}>
                     {showPreview ? 'Hide export' : 'Show export'}
                 </button>
             </header>
             <div className="editor">
-                <MailBlocks document={doc} onChange={setDoc} />
+                <MailBlocks document={doc} onChange={setDoc} theme={theme} />
             </div>
             {showPreview && (
                 <iframe className="preview" title="Exported email" srcDoc={exportHtml(doc)} />
