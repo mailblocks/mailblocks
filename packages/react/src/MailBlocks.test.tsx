@@ -12,7 +12,7 @@ import {
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, onTestFinished, vi } from 'vitest';
 import { MailBlocks } from './MailBlocks';
 
 /** Keeps the document in state so the UI reflects edits, like a real host would. */
@@ -96,7 +96,7 @@ describe('<MailBlocks />', () => {
 
         await userEvent.click(screen.getByText('Hello'));
         expect(screen.getAllByText('unknown').length).toBeGreaterThan(0);
-        expect(screen.getByText('fontSize')).toBeTruthy();
+        expect(screen.getByText('Font size', { selector: 'strong' })).toBeTruthy();
     });
 
     it('says so when the selected block is safe for every target', async () => {
@@ -141,7 +141,7 @@ describe('<MailBlocks /> with image blocks', () => {
         );
 
         await userEvent.click(screen.getByAltText('Photo'));
-        expect(screen.getByText('src')).toBeTruthy();
+        expect(screen.getByText('Image format')).toBeTruthy();
         expect(screen.getAllByText('not supported').length).toBeGreaterThan(0);
     });
 });
@@ -281,9 +281,9 @@ describe('<MailBlocks /> with button blocks', () => {
 
         await userEvent.click(screen.getByText('Shop'));
         // Orange cannot round the corners; Outlook on Windows gets the VML button.
-        const warning = screen.getByText('borderRadius').closest('li');
-        expect(warning?.textContent).toContain('orange');
-        expect(screen.getAllByText('borderRadius')).toHaveLength(1);
+        const warning = screen.getByText('Rounded corners', { selector: 'strong' }).closest('li');
+        expect(warning?.textContent).toContain('Orange');
+        expect(screen.getAllByText('Rounded corners', { selector: 'strong' })).toHaveLength(1);
     });
 });
 
@@ -395,7 +395,7 @@ describe('<MailBlocks /> warnings for rows and the email', () => {
         );
 
         await userEvent.click(container.querySelector('.mb-row') as HTMLElement);
-        expect(screen.getByText('backgroundColor')).toBeTruthy();
+        expect(screen.getByText('Background color', { selector: 'strong' })).toBeTruthy();
         expect(screen.getByText(/color keywords/)).toBeTruthy();
     });
 
@@ -407,7 +407,7 @@ describe('<MailBlocks /> warnings for rows and the email', () => {
                 targets={[{ family: 'orange', platform: 'desktop-webmail' }]}
             />,
         );
-        expect(screen.getByText('backgroundColor')).toBeTruthy();
+        expect(screen.getByText('Background color', { selector: 'strong' })).toBeTruthy();
         expect(screen.getByText(/color keywords/)).toBeTruthy();
     });
 });
@@ -757,10 +757,96 @@ describe('<MailBlocks /> dark mode colours', () => {
         await userEvent.click(screen.getByText('Hello'));
         fireEvent.change(screen.getByLabelText('Dark color'), { target: { value: '#eeeeee' } });
         // Gmail and Outlook on Windows, of the default targets; Apple Mail on iOS shows them.
-        const warnings = screen.getAllByText('darkColor').map((element) => element.parentElement!);
+        const warnings = screen
+            .getAllByText('Dark color', { selector: 'strong' })
+            .map((element) => element.parentElement!);
         expect(warnings.map((warning) => warning.textContent)).toEqual([
-            'not supporteddarkColor in gmail desktop-webmail',
-            'not supporteddarkColor in outlook windows',
+            expect.stringContaining('Dark color in Gmail Desktop Webmail'),
+            expect.stringContaining('Dark color in Outlook Windows'),
         ]);
+    });
+
+    it('explains a warning and links to the Can I Email result it comes from', async () => {
+        render(<Harness initial={textDoc()} />);
+        await userEvent.click(screen.getByText('Hello'));
+        fireEvent.change(screen.getByLabelText('Dark color'), { target: { value: '#eeeeee' } });
+
+        const gmail = screen
+            .getByText('Gmail Desktop Webmail', { exact: false, selector: 'li' })
+            .closest('li')!;
+        expect(within(gmail).getByText(/Your dark colors are not used here/)).toBeTruthy();
+        const source = within(gmail).getByRole('link', { name: 'Can I Email' });
+        expect(source.getAttribute('href')).toBe(
+            'https://www.caniemail.com/features/css-at-media-prefers-color-scheme/',
+        );
+        expect(source.getAttribute('target')).toBe('_blank');
+        expect(source.parentElement!.textContent).toBe('Can I Email, tested version 2022-12');
+    });
+});
+
+describe('<MailBlocks /> compatibility markers on the canvas', () => {
+    const OUTLOOK_WINDOWS = [{ family: 'outlook', platform: 'windows' }] as const;
+    const ORANGE = [{ family: 'orange', platform: 'desktop-webmail' }] as const;
+    const markers = () => screen.queryAllByRole('button', { name: /compatibility issue/ });
+
+    function imageDoc(src = 'https://example.com/a.webp') {
+        return documentWith(createImageBlock(src, 'Photo'), createTextBlock('<p>Hello</p>'));
+    }
+
+    it('marks the blocks that have issues in the target clients, and only those', () => {
+        render(
+            <MailBlocks document={imageDoc()} onChange={vi.fn()} targets={[...OUTLOOK_WINDOWS]} />,
+        );
+
+        expect(markers()).toHaveLength(1);
+        const marker = screen.getByRole('button', { name: 'Image block: 1 compatibility issue' });
+        expect(marker.classList.contains('mb-marker-n')).toBe(true);
+        expect(marker.title).toBe('Image format: not supported in Outlook Windows');
+    });
+
+    it('selects the block and shows its warnings when the marker is clicked', async () => {
+        render(
+            <MailBlocks document={imageDoc()} onChange={vi.fn()} targets={[...OUTLOOK_WINDOWS]} />,
+        );
+
+        // jsdom has no scrolling, so record the call instead.
+        const scrolled: Element[] = [];
+        const original = Element.prototype.scrollIntoView;
+        Element.prototype.scrollIntoView = function (this: Element) {
+            scrolled.push(this);
+        };
+        onTestFinished(() => {
+            Element.prototype.scrollIntoView = original;
+        });
+
+        await userEvent.click(screen.getByRole('button', { name: /Image block/ }));
+        expect(screen.getByRole('heading', { name: 'Image' })).toBeTruthy();
+        expect(screen.getByText('Image format', { selector: 'strong' })).toBeTruthy();
+        expect(scrolled.map((element) => element.textContent)).toEqual(['Warnings (1)']);
+    });
+
+    it('marks the email and rows too, coloured by their worst issue', () => {
+        const doc = documentWith(createTextBlock('<p>Hello</p>'));
+        doc.rows[0]!.styles.backgroundColor = '#ffffff';
+        render(<MailBlocks document={doc} onChange={vi.fn()} targets={[...ORANGE]} />);
+
+        const email = screen.getByRole('button', { name: /^Email settings: / });
+        const row = screen.getByRole('button', { name: /^Row 1: / });
+        const text = screen.getByRole('button', { name: /^Text block: / });
+        expect(email.classList.contains('mb-marker-a')).toBe(true);
+        expect(row.classList.contains('mb-marker-a')).toBe(true);
+        expect(text.classList.contains('mb-marker-u')).toBe(true);
+    });
+
+    it('takes the marker away once the issue is fixed', async () => {
+        render(<Harness initial={imageDoc()} />);
+        // The Harness uses the default targets, which include Outlook on Windows.
+        expect(screen.getByRole('button', { name: /Image block/ })).toBeTruthy();
+
+        await userEvent.click(screen.getByAltText('Photo'));
+        fireEvent.change(screen.getByLabelText('Image URL'), {
+            target: { value: 'https://example.com/a.png' },
+        });
+        expect(screen.queryByRole('button', { name: /Image block/ })).toBeNull();
     });
 });

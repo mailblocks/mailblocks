@@ -7,7 +7,9 @@ import {
     type Target,
     type WarningSubject,
 } from '@mailblocks/core';
+import { LEVEL_LABEL, propertyLabel } from './labels';
 import type { Selection } from './selection';
+import { WarningDetails } from './Warnings';
 
 const SECTIONS: { status: ClientStatus; title: string; hint: string }[] = [
     { status: 'unsupported', title: 'Problems', hint: 'Something will not show as designed.' },
@@ -15,12 +17,6 @@ const SECTIONS: { status: ClientStatus; title: string; hint: string }[] = [
     { status: 'unknown', title: 'Unknown', hint: 'Can I Email has no data for some styles.' },
     { status: 'ok', title: 'Works', hint: 'Nothing to report.' },
 ];
-
-const LEVEL_LABEL: Record<CompatWarning['level'], string> = {
-    n: 'not supported',
-    a: 'partial',
-    u: 'unknown',
-};
 
 const BLOCK_NAMES: Record<string, string> = {
     text: 'Text',
@@ -136,7 +132,7 @@ function Issues({
                     <span className={`mb-level mb-level-${warning.level}`}>
                         {LEVEL_LABEL[warning.level]}
                     </span>
-                    <strong>{warning.property}</strong>
+                    <strong>{propertyLabel(warning.property)}</strong>
                     <div className="mb-subjects">
                         {subjects.map((subject, i) => {
                             const { label, selection } = describeSubject(doc, subject);
@@ -152,13 +148,7 @@ function Issues({
                             );
                         })}
                     </div>
-                    {warning.notes.length > 0 && (
-                        <ul className="mb-notes">
-                            {warning.notes.map((note) => (
-                                <li key={note}>{note}</li>
-                            ))}
-                        </ul>
-                    )}
+                    <WarningDetails warning={warning} />
                 </li>
             ))}
         </ul>

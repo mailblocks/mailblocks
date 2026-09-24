@@ -11,7 +11,7 @@ import {
     type History,
     type Target,
 } from '@mailblocks/core';
-import { useMemo, useState, type KeyboardEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { Canvas } from './Canvas';
 import { ClientReport } from './ClientReport';
 import type { ColorScheme } from './colors';
@@ -30,7 +30,7 @@ export interface MailBlocksProps {
     document: EmailDocument;
     /** Called with a new document after every edit, undo and redo. */
     onChange: (document: EmailDocument) => void;
-    /** Email clients the inspector warns about. */
+    /** Email clients the canvas markers and the inspector warn about. */
     targets?: Target[];
     /**
      * Colours of the editor itself: `'system'` follows the operating system's
@@ -59,6 +59,7 @@ export function MailBlocks({
     const [preview, setPreview] = useState<'desktop' | 'mobile'>('desktop');
     const [scheme, setScheme] = useState<ColorScheme>('light');
     const [history, setHistory] = useState(() => createHistory(doc));
+    const side = useRef<HTMLElement>(null);
 
     // A document from outside (a load, or an edit the host did not apply)
     // makes the old history meaningless, so start over from it.
@@ -96,6 +97,19 @@ export function MailBlocks({
         setSelection(next);
         if (next) setPanel('inspector');
     };
+
+    // From a marker on the canvas: select its subject and bring its warnings into
+    // view, once the inspector shows them.
+    const [revealWarnings, setRevealWarnings] = useState(0);
+    const showWarnings = (next: Selection | undefined) => {
+        select(next);
+        setPanel('inspector');
+        setRevealWarnings((count) => count + 1);
+    };
+    useEffect(() => {
+        if (revealWarnings === 0) return;
+        side.current?.querySelector('.mb-warnings-title')?.scrollIntoView?.({ block: 'start' });
+    }, [revealWarnings]);
 
     // Only worked out while the report is on screen: it checks every client.
     const report = useMemo(() => (panel === 'clients' ? clientReport(doc) : []), [doc, panel]);
@@ -167,9 +181,11 @@ export function MailBlocks({
                     onChange={change}
                     selection={selection}
                     onSelect={select}
+                    targets={targets}
+                    onShowWarnings={showWarnings}
                 />
             </div>
-            <aside className="mb-side">
+            <aside className="mb-side" ref={side}>
                 <div className="mb-tabs" role="tablist" aria-label="Side panel">
                     <button
                         type="button"
