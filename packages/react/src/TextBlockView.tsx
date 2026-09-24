@@ -1,15 +1,23 @@
 import type { TextBlock } from '@mailblocks/core';
 import { useEffect, useRef } from 'react';
+import { withScheme, type ColorScheme } from './colors';
 
 interface TextBlockViewProps {
     block: TextBlock;
     selected: boolean;
     onSelect: () => void;
     onChange: (block: TextBlock) => void;
+    scheme?: ColorScheme;
 }
 
 /** A text block edited in place with `contentEditable`. */
-export function TextBlockView({ block, selected, onSelect, onChange }: TextBlockViewProps) {
+export function TextBlockView({
+    block,
+    selected,
+    onSelect,
+    onChange,
+    scheme = 'light',
+}: TextBlockViewProps) {
     const ref = useRef<HTMLDivElement>(null);
 
     // React never re-renders the inner HTML (the element has no children), so
@@ -20,7 +28,7 @@ export function TextBlockView({ block, selected, onSelect, onChange }: TextBlock
         if (element && element.innerHTML !== block.html) element.innerHTML = block.html;
     }, [block.html]);
 
-    const s = block.styles;
+    const s = withScheme(block.styles, scheme);
 
     return (
         <div

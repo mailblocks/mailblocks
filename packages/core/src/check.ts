@@ -71,6 +71,19 @@ function paddingCheck<S extends Padding>(): StyleCheck<S> {
     };
 }
 
+/**
+ * A dark mode colour. Clients show it only when they support the media query
+ * the export puts it in, so that is the feature to check.
+ */
+function darkCheck<S>(property: keyof S & string): StyleCheck<S> {
+    return {
+        property,
+        feature: 'css-at-media-prefers-color-scheme',
+        isSet: (s) => s[property] !== undefined,
+        values: (s) => [String(s[property])],
+    };
+}
+
 // Content width is not checked: the exporter sets it as an HTML width
 // attribute as well, which is what Outlook relies on.
 const DOCUMENT_STYLE_CHECKS: StyleCheck<DocumentStyles>[] = [
@@ -87,6 +100,8 @@ const DOCUMENT_STYLE_CHECKS: StyleCheck<DocumentStyles>[] = [
         isSet: () => true,
         values: (s) => [s.fontFamily],
     },
+    darkCheck('darkBackgroundColor'),
+    darkCheck('darkContentBackgroundColor'),
 ];
 
 const ROW_STYLE_CHECKS: StyleCheck<RowStyles>[] = [
@@ -102,6 +117,7 @@ const ROW_STYLE_CHECKS: StyleCheck<RowStyles>[] = [
         isSet: (s) => s.paddingTop + s.paddingBottom > 0,
         values: (s) => [px(s.paddingTop), px(s.paddingBottom)],
     },
+    darkCheck('darkBackgroundColor'),
 ];
 
 const TEXT_STYLE_CHECKS: StyleCheck<TextStyles>[] = [
@@ -130,6 +146,7 @@ const TEXT_STYLE_CHECKS: StyleCheck<TextStyles>[] = [
         values: (s) => [s.textAlign],
     },
     paddingCheck(),
+    darkCheck('darkColor'),
 ];
 
 const IMAGE_STYLE_CHECKS: StyleCheck<ImageStyles>[] = [
@@ -186,6 +203,8 @@ const BUTTON_STYLE_CHECKS: StyleCheck<ButtonStyles>[] = [
             ...SIDES.map((side) => px(s[side])),
         ],
     },
+    darkCheck('darkBackgroundColor'),
+    darkCheck('darkColor'),
 ];
 
 const DIVIDER_STYLE_CHECKS: StyleCheck<DividerStyles>[] = [
@@ -196,6 +215,7 @@ const DIVIDER_STYLE_CHECKS: StyleCheck<DividerStyles>[] = [
         values: (s) => [`${px(s.thickness)} ${s.lineStyle} ${s.color}`],
     },
     paddingCheck(),
+    darkCheck('darkColor'),
 ];
 
 /**

@@ -14,6 +14,7 @@ import {
 import { useMemo, useState, type KeyboardEvent } from 'react';
 import { Canvas } from './Canvas';
 import { ClientReport } from './ClientReport';
+import type { ColorScheme } from './colors';
 import { Inspector } from './Inspector';
 import type { Selection } from './selection';
 
@@ -56,6 +57,7 @@ export function MailBlocks({
     const [selection, setSelection] = useState<Selection>();
     const [panel, setPanel] = useState<'inspector' | 'clients'>('inspector');
     const [preview, setPreview] = useState<'desktop' | 'mobile'>('desktop');
+    const [scheme, setScheme] = useState<ColorScheme>('light');
     const [history, setHistory] = useState(() => createHistory(doc));
 
     // A document from outside (a load, or an edit the host did not apply)
@@ -125,6 +127,22 @@ export function MailBlocks({
                         Redo
                     </button>
                     <span className="mb-toolbar-spacer" />
+                    <div className="mb-toolbar-group" role="group" aria-label="Email colors">
+                        <button
+                            type="button"
+                            aria-pressed={scheme === 'light'}
+                            onClick={() => setScheme('light')}
+                        >
+                            Light
+                        </button>
+                        <button
+                            type="button"
+                            aria-pressed={scheme === 'dark'}
+                            onClick={() => setScheme('dark')}
+                        >
+                            Dark
+                        </button>
+                    </div>
                     <div className="mb-toolbar-group" role="group" aria-label="Preview">
                         <button
                             type="button"
@@ -145,6 +163,7 @@ export function MailBlocks({
                 <Canvas
                     doc={doc}
                     preview={preview}
+                    scheme={scheme}
                     onChange={change}
                     selection={selection}
                     onSelect={select}

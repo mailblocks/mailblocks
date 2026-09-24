@@ -10,7 +10,7 @@ import {
     type RowStyles,
     type Target,
 } from '@mailblocks/core';
-import { ChoiceField, fieldKey, numeric, type Choice } from './fields';
+import { ChoiceField, DarkModeFields, fieldKey, numeric, type Choice } from './fields';
 import { ColumnsIcon } from './icons';
 import { Warnings } from './Warnings';
 
@@ -168,6 +168,17 @@ export function RowSettings({ doc, row, index, onChange, targets }: RowSettingsP
                     />
                 </label>
             )}
+            <DarkModeFields
+                colors={[
+                    {
+                        label: 'Dark background',
+                        value: s.darkBackgroundColor,
+                        // A row without its own background shows the content's.
+                        light: s.backgroundColor ?? doc.styles.contentBackgroundColor,
+                        onChange: (darkBackgroundColor) => set({ darkBackgroundColor }),
+                    },
+                ]}
+            />
             <fieldset>
                 <legend>Padding</legend>
                 <label>

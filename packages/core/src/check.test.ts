@@ -268,3 +268,53 @@ describe('rows and email settings', () => {
         expect(check(doc, [GMAIL_DESKTOP, OUTLOOK_WINDOWS])).toEqual([]);
     });
 });
+
+describe('dark mode colours', () => {
+    const APPLE_MAIL_IOS: Target = { family: 'apple-mail', platform: 'ios' };
+    const OUTLOOK_COM: Target = { family: 'outlook', platform: 'outlook-com' };
+
+    it('warns where the client cannot show dark colours set by the email', () => {
+        const text = createTextBlock();
+        text.styles.darkColor = '#ffffff';
+        const warnings = checkBlock(text, [GMAIL_DESKTOP, APPLE_MAIL_IOS, OUTLOOK_COM]);
+        expect(warnings.map((w) => [w.property, w.feature, w.target.family, w.level])).toEqual([
+            ['darkColor', 'css-at-media-prefers-color-scheme', 'gmail', 'n'],
+        ]);
+    });
+
+    it('checks every dark colour of the email, rows and blocks', () => {
+        const doc = createEmptyDocument();
+        doc.styles.darkBackgroundColor = '#000000';
+        doc.styles.darkContentBackgroundColor = '#111111';
+        const row = createRow();
+        row.styles.darkBackgroundColor = '#222222';
+        const button = createButtonBlock();
+        button.styles.darkBackgroundColor = '#333333';
+        button.styles.darkColor = '#eeeeee';
+        const divider = createDividerBlock();
+        divider.styles.darkColor = '#444444';
+        row.columns[0]?.blocks.push(button, divider);
+        doc.rows.push(row);
+
+        const dark = check(doc, [OUTLOOK_WINDOWS]).filter(
+            (w) => w.feature === 'css-at-media-prefers-color-scheme',
+        );
+        expect(dark.map((w) => [w.subject.type, w.property])).toEqual([
+            ['document', 'darkBackgroundColor'],
+            ['document', 'darkContentBackgroundColor'],
+            ['row', 'darkBackgroundColor'],
+            ['block', 'darkBackgroundColor'],
+            ['block', 'darkColor'],
+            ['block', 'darkColor'],
+        ]);
+    });
+
+    it('stays quiet when no dark colour is set', () => {
+        const doc = documentWith(createTextBlock(), createButtonBlock(), createDividerBlock());
+        expect(
+            check(doc, [GMAIL_DESKTOP]).some(
+                (w) => w.feature === 'css-at-media-prefers-color-scheme',
+            ),
+        ).toBe(false);
+    });
+});

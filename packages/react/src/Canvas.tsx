@@ -12,6 +12,7 @@ import {
     type EmailDocument,
 } from '@mailblocks/core';
 import { ButtonBlockView } from './ButtonBlockView';
+import { withScheme, type ColorScheme } from './colors';
 import { DividerBlockView } from './DividerBlockView';
 import { ImageBlockView } from './ImageBlockView';
 import type { Selection } from './selection';
@@ -34,6 +35,8 @@ interface CanvasProps {
     doc: EmailDocument;
     /** Shows the email as a phone would, with stacking rows stacked. */
     preview: 'desktop' | 'mobile';
+    /** Shows the email with its dark mode colours, where it has them. */
+    scheme: ColorScheme;
     /** `mergeKey` groups consecutive edits of the same thing into one undo step. */
     onChange: (doc: EmailDocument, mergeKey?: string) => void;
     selection: Selection | undefined;
@@ -41,8 +44,11 @@ interface CanvasProps {
 }
 
 /** Renders the document roughly as the export will, with every block editable in place. */
-export function Canvas({ doc, preview, onChange, selection, onSelect }: CanvasProps) {
-    const { backgroundColor, contentWidth, contentBackgroundColor, fontFamily } = doc.styles;
+export function Canvas({ doc, preview, scheme, onChange, selection, onSelect }: CanvasProps) {
+    const { backgroundColor, contentWidth, contentBackgroundColor, fontFamily } = withScheme(
+        doc.styles,
+        scheme,
+    );
     const mobile = preview === 'mobile' && contentWidth > MOBILE_PREVIEW_WIDTH;
     // Same rule as the export: several columns, and not opted out.
     const stacked = (row: EmailDocument['rows'][number]) =>
@@ -88,7 +94,7 @@ export function Canvas({ doc, preview, onChange, selection, onSelect }: CanvasPr
                             onSelect({ type: 'row', id: row.id });
                         }}
                         style={{
-                            backgroundColor: row.styles.backgroundColor,
+                            backgroundColor: withScheme(row.styles, scheme).backgroundColor,
                             paddingTop: row.styles.paddingTop,
                             paddingBottom: row.styles.paddingBottom,
                         }}
@@ -103,6 +109,7 @@ export function Canvas({ doc, preview, onChange, selection, onSelect }: CanvasPr
                                     <BlockView
                                         key={block.id}
                                         block={block}
+                                        scheme={scheme}
                                         selected={isSelected('block', block.id)}
                                         onSelect={() => onSelect({ type: 'block', id: block.id })}
                                         onChange={(next) =>
@@ -170,17 +177,19 @@ export function Canvas({ doc, preview, onChange, selection, onSelect }: CanvasPr
 
 interface BlockViewProps {
     block: Block;
+    scheme: ColorScheme;
     selected: boolean;
     onSelect: () => void;
     onChange: (block: Block) => void;
 }
 
-function BlockView({ block, selected, onSelect, onChange }: BlockViewProps) {
+function BlockView({ block, scheme, selected, onSelect, onChange }: BlockViewProps) {
     switch (block.type) {
         case 'text':
             return (
                 <TextBlockView
                     block={block}
+                    scheme={scheme}
                     selected={selected}
                     onSelect={onSelect}
                     onChange={onChange}
@@ -189,9 +198,23 @@ function BlockView({ block, selected, onSelect, onChange }: BlockViewProps) {
         case 'image':
             return <ImageBlockView block={block} selected={selected} onSelect={onSelect} />;
         case 'button':
-            return <ButtonBlockView block={block} selected={selected} onSelect={onSelect} />;
+            return (
+                <ButtonBlockView
+                    block={block}
+                    scheme={scheme}
+                    selected={selected}
+                    onSelect={onSelect}
+                />
+            );
         case 'divider':
-            return <DividerBlockView block={block} selected={selected} onSelect={onSelect} />;
+            return (
+                <DividerBlockView
+                    block={block}
+                    scheme={scheme}
+                    selected={selected}
+                    onSelect={onSelect}
+                />
+            );
         case 'spacer':
             return <SpacerBlockView block={block} selected={selected} onSelect={onSelect} />;
     }

@@ -5,7 +5,7 @@ import {
     type EmailDocument,
     type Target,
 } from '@mailblocks/core';
-import { fieldKey, numeric } from './fields';
+import { DarkModeFields, fieldKey, numeric } from './fields';
 import { Warnings } from './Warnings';
 
 /** Font stacks that render the same, or close to it, in every email client. */
@@ -75,6 +75,23 @@ export function DocumentSettings({ doc, onChange, targets }: DocumentSettingsPro
                     ))}
                 </select>
             </label>
+            <DarkModeFields
+                colors={[
+                    {
+                        label: 'Dark background',
+                        value: s.darkBackgroundColor,
+                        light: s.backgroundColor,
+                        onChange: (darkBackgroundColor) => set({ darkBackgroundColor }),
+                    },
+                    {
+                        label: 'Dark content background',
+                        value: s.darkContentBackgroundColor,
+                        light: s.contentBackgroundColor,
+                        onChange: (darkContentBackgroundColor) =>
+                            set({ darkContentBackgroundColor }),
+                    },
+                ]}
+            />
             <p className="mb-muted">Click a row or a block to edit it.</p>
             <Warnings warnings={checkDocument(doc, targets)} />
         </>

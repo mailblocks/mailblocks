@@ -10,6 +10,7 @@ import {
     createTextBlock,
     type Block,
     type EmailDocument,
+    type TextBlock,
 } from './model';
 
 function documentWith(...blocks: Block[]): EmailDocument {
@@ -392,5 +393,112 @@ describe('exportHtml() on narrow screens', () => {
         expect(html).toContain(
             '<td bgcolor="#abcdef" style="padding:0px 0 0px 0;text-align:center;font-size:0;background-color:#abcdef;">',
         );
+    });
+});
+
+describe('exportHtml() in dark mode', () => {
+    function darkDocument() {
+        const doc = createEmptyDocument();
+        doc.styles.darkBackgroundColor = '#000000';
+        doc.styles.darkContentBackgroundColor = '#111111';
+        const row = createRow();
+        row.styles.darkBackgroundColor = '#222222';
+        const text = createTextBlock('<p>Hi</p>');
+        text.styles.darkColor = '#eeeeee';
+        const button = createButtonBlock('Go', 'https://example.com');
+        button.styles.darkBackgroundColor = '#60a5fa';
+        button.styles.darkColor = '#0b1220';
+        const divider = createDividerBlock();
+        divider.styles.darkColor = '#444444';
+        row.columns[0]?.blocks.push(text, button, divider);
+        doc.rows.push(row);
+        return doc;
+    }
+
+    /** The style sheet of an export. */
+    const styleSheet = (html: string) => /<style[^>]*>([^]*?)<\/style>/.exec(html)?.[1] ?? '';
+
+    it('adds nothing when the document has no dark colours', () => {
+        const html = exportHtml(documentWith(createTextBlock('<p>Hi</p>')));
+        expect(html).not.toContain('color-scheme');
+        expect(html).not.toContain('mb-dark');
+    });
+
+    it('declares that the email has its own dark colours', () => {
+        const html = exportHtml(darkDocument());
+        expect(html).toContain('<meta name="color-scheme" content="light dark" />');
+        expect(html).toContain('<meta name="supported-color-schemes" content="light dark" />');
+        expect(styleSheet(html)).toContain(
+            ':root { color-scheme: light dark; supported-color-schemes: light dark; }',
+        );
+    });
+
+    it('gives each element with dark colours a class and sets them in a media query', () => {
+        const html = exportHtml(darkDocument());
+        expect(html).toContain('<body class="mb-dark-1" style=');
+        expect(html).toContain('<table class="mb-dark-1" role="presentation" width="100%"');
+        expect(html).toContain(
+            '<table class="mb-dark-2" role="presentation" width="100%" align="center"',
+        );
+        expect(html).toContain('<td class="mb-dark-3" style="padding:0px 0 0px 0;">');
+        expect(html).toContain('<td class="mb-dark-4" align="left"');
+
+        const media = /@media \(prefers-color-scheme: dark\) \{([^]*?)\n\}/.exec(
+            styleSheet(html),
+        )?.[1];
+        expect(media?.trim().split('\n')).toEqual([
+            '.mb-dark-1:not([class^="x_"]) { background-color:#000000 !important; }',
+            '.mb-dark-2:not([class^="x_"]) { background-color:#111111 !important; }',
+            '.mb-dark-3:not([class^="x_"]) { background-color:#222222 !important; }',
+            '.mb-dark-4:not([class^="x_"]) { color:#eeeeee !important; }',
+            '.mb-dark-5:not([class^="x_"]) { background-color:#60a5fa !important; }',
+            '.mb-dark-6:not([class^="x_"]) { color:#0b1220 !important; }',
+            '.mb-dark-7:not([class^="x_"]) { border-top-color:#444444 !important; }',
+        ]);
+    });
+
+    it('sets them for Outlook.com through the attributes of its own dark mode', () => {
+        const sheet = styleSheet(exportHtml(darkDocument()));
+        expect(sheet).toContain('[data-ogsb] .mb-dark-1 { background-color:#000000 !important; }');
+        expect(sheet).toContain('[data-ogsc] .mb-dark-4 { color:#eeeeee !important; }');
+        expect(sheet).toContain('[data-ogsb] .mb-dark-5 { background-color:#60a5fa !important; }');
+        expect(sheet).toContain('[data-ogsc] .mb-dark-6 { color:#0b1220 !important; }');
+        // Outlook.com marks text and background changes only, not borders.
+        expect(sheet).not.toContain('.mb-dark-7 { border');
+    });
+
+    it('colours the button cell and its label, and leaves the VML version alone', () => {
+        const html = exportHtml(darkDocument());
+        expect(html).toContain('<td class="mb-dark-5" align="center" bgcolor="#2563eb"');
+        expect(html).toContain('<a class="mb-dark-6" href="https://example.com"');
+        expect(html).not.toMatch(/<v:roundrect[^>]*class=/);
+    });
+
+    it('keeps light colours inline, for the clients without dark colours', () => {
+        const html = exportHtml(darkDocument());
+        expect(html).toContain('background-color:#f4f4f4;');
+        expect(html).toContain('color:#000000;');
+        expect(html).toContain('border-top:1px solid #d1d5db;');
+    });
+
+    it('marks stacking rows too', () => {
+        const doc = createEmptyDocument();
+        const row = createRow(2);
+        row.styles.darkBackgroundColor = '#222222';
+        doc.rows.push(row);
+        expect(exportHtml(doc)).toContain(
+            '<td class="mb-dark-1" style="padding:0px 0 0px 0;text-align:center;font-size:0;">',
+        );
+    });
+
+    it('cannot break out of the style sheet with a colour', () => {
+        const doc = documentWith(createTextBlock('<p>Hi</p>'));
+        const text = doc.rows[0]!.columns[0]!.blocks[0] as TextBlock;
+        text.styles.darkColor = 'red; } </style><script>alert(1)</script>';
+        const sheet = styleSheet(exportHtml(doc));
+        expect(sheet).toContain(
+            '.mb-dark-1:not([class^="x_"]) { color:red  stylescriptalert(1)script !important; }',
+        );
+        expect(exportHtml(doc)).not.toContain('<script>');
     });
 });

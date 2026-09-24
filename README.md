@@ -27,14 +27,20 @@ not supported and why, and exports table-based HTML that those clients can actua
   drawn as table borders, spacers sized with cell heights. The content is fluid up to its width,
   and rows with several columns stack on phones: the columns wrap below each other even where
   media queries are stripped, and Outlook on Windows keeps them side by side in a table.
+- **Dark mode** – backgrounds, text, buttons and dividers can have a dark colour of their own.
+  The export sets them in a `prefers-color-scheme` media query, with the `color-scheme` meta tags,
+  and through the attributes Outlook.com adds in its own dark mode. Light colours stay inline for
+  every other client. Where a client cannot show them (Gmail, Outlook on Windows), the check says
+  so.
 - **React editor** – `<MailBlocks>` lets you type into text blocks in place, add any block type,
   style the selected block in an inspector that lists its warnings, and move blocks up and down.
   Select a row to change its column layout (up to six columns, with custom widths), background,
   padding and order; select nothing to set the email background, content width and font. A
-  Desktop / Mobile switch previews the phone layout, and each row can opt out of stacking. The
-  Clients tab lists every email client by how well the email renders there, and jumps to the
-  block behind an issue. Every change can be undone and redone. The editor follows the system's
-  light or dark mode, or a theme you pin.
+  Desktop / Mobile switch previews the phone layout, and each row can opt out of stacking. A
+  Light / Dark switch previews the email in its dark colours. The Clients tab lists every email
+  client by how well the email renders there, and jumps to the block behind an issue. Every
+  change can be undone and redone. The editor follows the system's light or dark mode, or a theme
+  you pin.
 
 Neither package has runtime dependencies beyond React for the editor.
 

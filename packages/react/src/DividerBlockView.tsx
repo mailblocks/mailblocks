@@ -1,14 +1,21 @@
 import type { DividerBlock } from '@mailblocks/core';
+import { withScheme, type ColorScheme } from './colors';
 
 interface DividerBlockViewProps {
     block: DividerBlock;
     selected: boolean;
     onSelect: () => void;
+    scheme?: ColorScheme;
 }
 
 /** A horizontal line, edited in the inspector. */
-export function DividerBlockView({ block, selected, onSelect }: DividerBlockViewProps) {
-    const s = block.styles;
+export function DividerBlockView({
+    block,
+    selected,
+    onSelect,
+    scheme = 'light',
+}: DividerBlockViewProps) {
+    const s = withScheme(block.styles, scheme);
 
     return (
         <div

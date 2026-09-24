@@ -20,6 +20,7 @@ import { DocumentSettings } from './DocumentSettings';
 import {
     ALIGN_CHOICES,
     ChoiceField,
+    DarkModeFields,
     fieldKey,
     LINE_STYLE_CHOICES,
     numeric,
@@ -162,6 +163,16 @@ function TextFields({ doc, block, onChange }: FieldsProps<TextBlock>) {
                 onChange={(textAlign) => set({ textAlign })}
             />
             <PaddingFields styles={s} onChange={set} />
+            <DarkModeFields
+                colors={[
+                    {
+                        label: 'Dark color',
+                        value: s.darkColor,
+                        light: s.color,
+                        onChange: (darkColor) => set({ darkColor }),
+                    },
+                ]}
+            />
         </>
     );
 }
@@ -348,6 +359,22 @@ function ButtonFields({ doc, block, onChange }: FieldsProps<ButtonBlock>) {
                 </label>
             </fieldset>
             <PaddingFields styles={s} onChange={set} legend="Outer padding" />
+            <DarkModeFields
+                colors={[
+                    {
+                        label: 'Dark background',
+                        value: s.darkBackgroundColor,
+                        light: s.backgroundColor,
+                        onChange: (darkBackgroundColor) => set({ darkBackgroundColor }),
+                    },
+                    {
+                        label: 'Dark text color',
+                        value: s.darkColor,
+                        light: s.color,
+                        onChange: (darkColor) => set({ darkColor }),
+                    },
+                ]}
+            />
         </>
     );
 }
@@ -400,6 +427,16 @@ function DividerFields({ doc, block, onChange }: FieldsProps<DividerBlock>) {
                 onChange={(align) => set({ align })}
             />
             <PaddingFields styles={s} onChange={set} />
+            <DarkModeFields
+                colors={[
+                    {
+                        label: 'Dark color',
+                        value: s.darkColor,
+                        light: s.color,
+                        onChange: (darkColor) => set({ darkColor }),
+                    },
+                ]}
+            />
         </>
     );
 }
