@@ -1,6 +1,7 @@
 import {
     addBlock,
     addRow,
+    check,
     createButtonBlock,
     createDividerBlock,
     createImageBlock,
@@ -9,10 +10,15 @@ import {
     createTextBlock,
     updateBlock,
     type Block,
+    type CompatWarning,
     type EmailDocument,
+    type Target,
+    type WarningSubject,
 } from '@mailblocks/core';
+import { useMemo } from 'react';
 import { ButtonBlockView } from './ButtonBlockView';
 import { withScheme, type ColorScheme } from './colors';
+import { CompatMarker } from './CompatMarker';
 import { DividerBlockView } from './DividerBlockView';
 import { ImageBlockView } from './ImageBlockView';
 import type { Selection } from './selection';
@@ -28,6 +34,10 @@ const BLOCK_TYPES: { type: Block['type']; label: string; create: () => Block }[]
     { type: 'spacer', label: 'Spacer', create: () => createSpacerBlock() },
 ];
 
+const BLOCK_LABELS = Object.fromEntries(
+    BLOCK_TYPES.map((option) => [option.type, option.label]),
+) as Record<Block['type'], string>;
+
 /** Width of the phone preview, a common phone screen in CSS pixels. */
 export const MOBILE_PREVIEW_WIDTH = 375;
 
@@ -41,10 +51,38 @@ interface CanvasProps {
     onChange: (doc: EmailDocument, mergeKey?: string) => void;
     selection: Selection | undefined;
     onSelect: (selection: Selection | undefined) => void;
+    /** Clients whose warnings are marked on the canvas. */
+    targets: readonly Target[];
+    /** Called when a marker is clicked: show that subject and its warnings. */
+    onShowWarnings: (selection: Selection | undefined) => void;
 }
 
+const subjectKey = (subject: WarningSubject) =>
+    subject.type === 'document' ? 'document' : `${subject.type}:${subject.id}`;
+
+/** Warnings grouped by what they are about, looked up with {@link subjectKey}. */
+function warningsBySubject(warnings: readonly CompatWarning[]): Map<string, CompatWarning[]> {
+    const groups = new Map<string, CompatWarning[]>();
+    for (const warning of warnings) {
+        const key = subjectKey(warning.subject);
+        groups.set(key, [...(groups.get(key) ?? []), warning]);
+    }
+    return groups;
+}
+
+const NO_WARNINGS: CompatWarning[] = [];
+
 /** Renders the document roughly as the export will, with every block editable in place. */
-export function Canvas({ doc, preview, scheme, onChange, selection, onSelect }: CanvasProps) {
+export function Canvas({
+    doc,
+    preview,
+    scheme,
+    onChange,
+    selection,
+    onSelect,
+    targets,
+    onShowWarnings,
+}: CanvasProps) {
     const { backgroundColor, contentWidth, contentBackgroundColor, fontFamily } = withScheme(
         doc.styles,
         scheme,
@@ -68,6 +106,10 @@ export function Canvas({ doc, preview, scheme, onChange, selection, onSelect }: 
     const isSelected = (type: Selection['type'], id: string) =>
         selection?.type === type && selection.id === id;
 
+    const warnings = useMemo(() => warningsBySubject(check(doc, targets)), [doc, targets]);
+    const warningsFor = (subject: WarningSubject) =>
+        warnings.get(subjectKey(subject)) ?? NO_WARNINGS;
+
     return (
         <div className="mb-canvas" style={{ backgroundColor }} onClick={() => onSelect(undefined)}>
             <div
@@ -78,7 +120,13 @@ export function Canvas({ doc, preview, scheme, onChange, selection, onSelect }: 
                     fontFamily,
                 }}
             >
-                {doc.rows.map((row) => (
+                <CompatMarker
+                    className="mb-marker-document"
+                    subject="Email settings"
+                    warnings={warningsFor({ type: 'document' })}
+                    onClick={() => onShowWarnings(undefined)}
+                />
+                {doc.rows.map((row, rowIndex) => (
                     <div
                         key={row.id}
                         className={[
@@ -99,6 +147,12 @@ export function Canvas({ doc, preview, scheme, onChange, selection, onSelect }: 
                             paddingBottom: row.styles.paddingBottom,
                         }}
                     >
+                        <CompatMarker
+                            className="mb-marker-row"
+                            subject={`Row ${rowIndex + 1}`}
+                            warnings={warningsFor({ type: 'row', id: row.id })}
+                            onClick={() => onShowWarnings({ type: 'row', id: row.id })}
+                        />
                         {row.columns.map((column) => (
                             <div
                                 key={column.id}
@@ -106,19 +160,31 @@ export function Canvas({ doc, preview, scheme, onChange, selection, onSelect }: 
                                 style={{ width: stacked(row) ? '100%' : `${column.width}%` }}
                             >
                                 {column.blocks.map((block) => (
-                                    <BlockView
-                                        key={block.id}
-                                        block={block}
-                                        scheme={scheme}
-                                        selected={isSelected('block', block.id)}
-                                        onSelect={() => onSelect({ type: 'block', id: block.id })}
-                                        onChange={(next) =>
-                                            onChange(
-                                                updateBlock(doc, block.id, () => next),
-                                                `content:${block.id}`,
-                                            )
-                                        }
-                                    />
+                                    // The marker sits beside the block view, not in it: a text
+                                    // block's element holds only the text being edited.
+                                    <div key={block.id} className="mb-block-slot">
+                                        <BlockView
+                                            block={block}
+                                            scheme={scheme}
+                                            selected={isSelected('block', block.id)}
+                                            onSelect={() =>
+                                                onSelect({ type: 'block', id: block.id })
+                                            }
+                                            onChange={(next) =>
+                                                onChange(
+                                                    updateBlock(doc, block.id, () => next),
+                                                    `content:${block.id}`,
+                                                )
+                                            }
+                                        />
+                                        <CompatMarker
+                                            subject={`${BLOCK_LABELS[block.type]} block`}
+                                            warnings={warningsFor({ type: 'block', id: block.id })}
+                                            onClick={() =>
+                                                onShowWarnings({ type: 'block', id: block.id })
+                                            }
+                                        />
+                                    </div>
                                 ))}
                                 <div className="mb-add-block">
                                     <select

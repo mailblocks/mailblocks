@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { families, features, platforms, support, supportDetails } from './compat';
+import { families, featureUrl, features, platforms, support, supportDetails } from './compat';
 
 describe('support()', () => {
     it('returns the support level of the latest tested version', () => {
@@ -52,5 +52,13 @@ describe('supportDetails()', () => {
 
     it('returns undefined when Can I Email has no data for that client platform', () => {
         expect(supportDetails('css-text-align', 'gmail', 'windows')).toBeUndefined();
+    });
+});
+
+describe('featureUrl()', () => {
+    it('links to the feature page on caniemail.com', () => {
+        expect(featureUrl('css-at-media-prefers-color-scheme')).toBe(
+            'https://www.caniemail.com/features/css-at-media-prefers-color-scheme/',
+        );
     });
 });

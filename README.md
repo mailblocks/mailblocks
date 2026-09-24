@@ -34,6 +34,9 @@ not supported and why, and exports table-based HTML that those clients can actua
   so.
 - **React editor** – `<MailBlocks>` lets you type into text blocks in place, add any block type,
   style the selected block in an inspector that lists its warnings, and move blocks up and down.
+  Every block, row and the email itself carries a marker on the canvas when it has issues in the
+  target clients, coloured by the worst one; clicking it opens those warnings. Each warning says
+  what it means for the reader and links to the Can I Email result it comes from.
   Select a row to change its column layout (up to six columns, with custom widths), background,
   padding and order; select nothing to set the email background, content width and font. A
   Desktop / Mobile switch previews the phone layout, and each row can opt out of stacking. A

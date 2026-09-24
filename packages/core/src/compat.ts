@@ -57,3 +57,8 @@ export function support(
 ): SupportLevel | undefined {
     return supportDetails(slug, family, platform)?.level;
 }
+
+/** The Can I Email page of a feature, e.g. https://www.caniemail.com/features/css-padding/. */
+export function featureUrl(slug: string): string {
+    return `https://www.caniemail.com/features/${encodeURIComponent(slug)}/`;
+}
