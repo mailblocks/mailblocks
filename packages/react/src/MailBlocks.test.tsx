@@ -651,3 +651,24 @@ describe('<MailBlocks /> phone preview and stacking', () => {
         expect(screen.queryByLabelText('Stack on phones')).toBeNull();
     });
 });
+
+describe('<MailBlocks /> theme', () => {
+    const editor = (container: HTMLElement) => container.querySelector('.mb-editor') as HTMLElement;
+
+    it('follows the system theme by default', () => {
+        const { container } = render(
+            <MailBlocks document={createEmptyDocument()} onChange={vi.fn()} />,
+        );
+        expect(editor(container).dataset.theme).toBe('system');
+    });
+
+    it('pins the light or the dark theme', () => {
+        const doc = createEmptyDocument();
+        const { container, rerender } = render(
+            <MailBlocks document={doc} onChange={vi.fn()} theme="dark" />,
+        );
+        expect(editor(container).dataset.theme).toBe('dark');
+        rerender(<MailBlocks document={doc} onChange={vi.fn()} theme="light" />);
+        expect(editor(container).dataset.theme).toBe('light');
+    });
+});

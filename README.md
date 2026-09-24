@@ -33,7 +33,8 @@ not supported and why, and exports table-based HTML that those clients can actua
   padding and order; select nothing to set the email background, content width and font. A
   Desktop / Mobile switch previews the phone layout, and each row can opt out of stacking. The
   Clients tab lists every email client by how well the email renders there, and jumps to the
-  block behind an issue. Every change can be undone and redone.
+  block behind an issue. Every change can be undone and redone. The editor follows the system's
+  light or dark mode, or a theme you pin.
 
 Neither package has runtime dependencies beyond React for the editor.
 
@@ -106,6 +107,22 @@ export function Designer() {
 
 The component is controlled: it never changes `document`, it calls `onChange` with a new one.
 Undo history lives inside it and starts over when you pass a document it did not produce.
+
+`theme` is `'system'` by default; pass `'light'` or `'dark'` to pin it. Every colour of the editor
+is a CSS custom property, so it can match your app:
+
+```css
+.mb-editor {
+    --mb-accent: #7c3aed;
+    --mb-accent-text: #6d28d9;
+    --mb-accent-bg: #ede9fe;
+}
+```
+
+A rule like this wins over both themes. To change only the dark one, set the properties on
+`.mb-editor[data-theme='dark']` and inside `@media (prefers-color-scheme: dark)`. The full list is at
+the top of [`styles.css`](./packages/react/src/styles.css). The theme only colours the editor; the
+email keeps its own colours.
 
 ## Try it
 

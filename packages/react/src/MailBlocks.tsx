@@ -31,6 +31,11 @@ export interface MailBlocksProps {
     onChange: (document: EmailDocument) => void;
     /** Email clients the inspector warns about. */
     targets?: Target[];
+    /**
+     * Colours of the editor itself: `'system'` follows the operating system's
+     * light or dark setting. The email is always shown with its own colours.
+     */
+    theme?: 'light' | 'dark' | 'system';
 }
 
 /**
@@ -46,6 +51,7 @@ export function MailBlocks({
     document: doc,
     onChange,
     targets = DEFAULT_TARGETS,
+    theme = 'system',
 }: MailBlocksProps) {
     const [selection, setSelection] = useState<Selection>();
     const [panel, setPanel] = useState<'inspector' | 'clients'>('inspector');
@@ -99,7 +105,7 @@ export function MailBlocks({
     const selectedRow = rowIndex >= 0 ? { row: doc.rows[rowIndex]!, index: rowIndex } : undefined;
 
     return (
-        <div className="mb-editor" onKeyDown={onKeyDown}>
+        <div className="mb-editor" data-theme={theme} onKeyDown={onKeyDown}>
             <div className="mb-main">
                 <div className="mb-toolbar">
                     <button
