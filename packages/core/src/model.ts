@@ -35,6 +35,12 @@ export interface RowStyles {
     backgroundColor?: string;
     paddingTop: number;
     paddingBottom: number;
+    /**
+     * Whether the columns go below each other on screens narrower than the
+     * content. Defaults to true; set it to false for rows that should stay side
+     * by side, such as a row of small icons.
+     */
+    stackOnMobile?: boolean;
 }
 
 export interface Column {

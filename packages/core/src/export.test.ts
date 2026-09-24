@@ -66,10 +66,13 @@ describe('exportHtml()', () => {
         expect(exportHtml(documentWith(block))).toContain('font-family:Verdana, sans-serif;');
     });
 
-    it('renders columns as cells with percentage widths', () => {
+    it('renders the columns of a row that does not stack as cells with percentage widths', () => {
         const doc = createEmptyDocument();
-        doc.rows.push(createRow(3));
+        const row = createRow(3);
+        row.styles.stackOnMobile = false;
+        doc.rows.push(row);
         const html = exportHtml(doc);
+        expect(html).not.toContain('mb-col');
 
         expect(html.match(/<td valign="top" width="33.33%" style="width:33.33%;">/g)).toHaveLength(
             3,
@@ -314,5 +317,80 @@ describe('exportHtml() VML fallback for rounded buttons', () => {
         const html = buttonHtml((block) => (block.href = ''));
         const vml = html.slice(html.indexOf('<v:roundrect'), html.indexOf('</v:roundrect>'));
         expect(vml).not.toContain('href=');
+    });
+});
+
+describe('exportHtml() on narrow screens', () => {
+    function twoColumns(configure?: (row: ReturnType<typeof createRow>) => void) {
+        const doc = createEmptyDocument();
+        const row = createRow(2);
+        row.columns[0]?.blocks.push(createTextBlock('<p>Left</p>'));
+        row.columns[1]?.blocks.push(createTextBlock('<p>Right</p>'));
+        configure?.(row);
+        doc.rows.push(row);
+        return exportHtml(doc);
+    }
+
+    it('makes the content fluid up to its width, with a fixed table for Outlook', () => {
+        const html = exportHtml(createEmptyDocument());
+        expect(html).toContain('style="width:100%;max-width:600px;margin:0 auto;');
+        expect(html).toContain(
+            '<!--[if mso]><table role="presentation" width="600" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->',
+        );
+        expect(html).toContain('<!--[if mso]></td></tr></table><![endif]-->');
+    });
+
+    it('turns the columns of a stacking row into inline-blocks capped at their desktop width', () => {
+        const html = twoColumns();
+        const columns = html.match(
+            /<div class="mb-col" style="display:inline-block;width:100%;max-width:300px;vertical-align:top;text-align:left;font-size:16px;">/g,
+        );
+        expect(columns).toHaveLength(2);
+        expect(html).toContain('text-align:center;font-size:0;');
+    });
+
+    it('keeps Outlook on Windows side by side with a table in conditional comments', () => {
+        const html = twoColumns();
+        expect(html.split('<!--[if mso]><td valign="top" width="300"><![endif]-->')).toHaveLength(
+            3,
+        );
+        expect(html).toContain(
+            '<!--[if mso]><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><![endif]-->',
+        );
+        expect(html).toContain('<!--[if mso]></tr></table><![endif]-->');
+    });
+
+    it('stretches stacked columns to the full width where media queries work', () => {
+        expect(twoColumns()).toContain(
+            '@media only screen and (max-width: 600px) {\n.mb-col { max-width: 100% !important; }\n}',
+        );
+    });
+
+    it('rounds column widths down so they never add up to more than the content', () => {
+        // 601px split in two is 300.5px each: rounding would give 301 + 301 = 602px.
+        const doc = createEmptyDocument();
+        doc.styles.contentWidth = 601;
+        doc.rows.push(createRow(2));
+        const widths = [...exportHtml(doc).matchAll(/max-width:(\d+)px;vertical-align/g)].map(
+            (match) => Number(match[1]),
+        );
+        expect(widths).toEqual([300, 300]);
+    });
+
+    it('leaves rows that should not stack, and single columns, as plain tables', () => {
+        const html = twoColumns((row) => (row.styles.stackOnMobile = false));
+        expect(html).not.toContain('mb-col');
+        expect(html).not.toContain('@media');
+
+        const single = createEmptyDocument();
+        single.rows.push(createRow(1));
+        expect(exportHtml(single)).not.toContain('mb-col');
+    });
+
+    it('keeps the row background and its bgcolor fallback on stacking rows', () => {
+        const html = twoColumns((row) => (row.styles.backgroundColor = '#abcdef'));
+        expect(html).toContain(
+            '<td bgcolor="#abcdef" style="padding:0px 0 0px 0;text-align:center;font-size:0;background-color:#abcdef;">',
+        );
     });
 });

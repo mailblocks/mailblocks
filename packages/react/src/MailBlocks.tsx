@@ -49,6 +49,7 @@ export function MailBlocks({
 }: MailBlocksProps) {
     const [selection, setSelection] = useState<Selection>();
     const [panel, setPanel] = useState<'inspector' | 'clients'>('inspector');
+    const [preview, setPreview] = useState<'desktop' | 'mobile'>('desktop');
     const [history, setHistory] = useState(() => createHistory(doc));
 
     // A document from outside (a load, or an edit the host did not apply)
@@ -117,8 +118,31 @@ export function MailBlocks({
                     >
                         Redo
                     </button>
+                    <span className="mb-toolbar-spacer" />
+                    <div className="mb-toolbar-group" role="group" aria-label="Preview">
+                        <button
+                            type="button"
+                            aria-pressed={preview === 'desktop'}
+                            onClick={() => setPreview('desktop')}
+                        >
+                            Desktop
+                        </button>
+                        <button
+                            type="button"
+                            aria-pressed={preview === 'mobile'}
+                            onClick={() => setPreview('mobile')}
+                        >
+                            Mobile
+                        </button>
+                    </div>
                 </div>
-                <Canvas doc={doc} onChange={change} selection={selection} onSelect={select} />
+                <Canvas
+                    doc={doc}
+                    preview={preview}
+                    onChange={change}
+                    selection={selection}
+                    onSelect={select}
+                />
             </div>
             <aside className="mb-side">
                 <div className="mb-tabs" role="tablist" aria-label="Side panel">

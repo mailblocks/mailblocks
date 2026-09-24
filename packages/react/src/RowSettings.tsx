@@ -134,6 +134,16 @@ export function RowSettings({ doc, row, index, onChange, targets }: RowSettingsP
                     ))}
                 </fieldset>
             )}
+            {count > 1 && (
+                <label title="Put the columns below each other on screens narrower than the email">
+                    Stack on phones
+                    <input
+                        type="checkbox"
+                        checked={s.stackOnMobile !== false}
+                        onChange={(event) => set({ stackOnMobile: event.target.checked })}
+                    />
+                </label>
+            )}
             <label>
                 Background
                 <input

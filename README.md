@@ -24,11 +24,14 @@ not supported and why, and exports table-based HTML that those clients can actua
 - **HTML export** – `exportHtml(doc)` renders nested tables with inline styles, pixel units and
   the Outlook-specific hints that keep it from mangling the result: buttons whose colour and
   padding sit on a table cell (and rounded ones redrawn in VML for Outlook on Windows), dividers
-  drawn as table borders, spacers sized with cell heights.
+  drawn as table borders, spacers sized with cell heights. The content is fluid up to its width,
+  and rows with several columns stack on phones: the columns wrap below each other even where
+  media queries are stripped, and Outlook on Windows keeps them side by side in a table.
 - **React editor** – `<MailBlocks>` lets you type into text blocks in place, add any block type,
   style the selected block in an inspector that lists its warnings, and move blocks up and down.
   Select a row to change its column layout (up to six columns, with custom widths), background,
-  padding and order; select nothing to set the email background, content width and font. The
+  padding and order; select nothing to set the email background, content width and font. A
+  Desktop / Mobile switch previews the phone layout, and each row can opt out of stacking. The
   Clients tab lists every email client by how well the email renders there, and jumps to the
   block behind an issue. Every change can be undone and redone.
 
