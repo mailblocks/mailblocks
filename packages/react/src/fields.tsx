@@ -136,3 +136,51 @@ export const LINE_STYLE_CHOICES: Choice<LineStyle>[] = [
     { value: 'dashed', label: 'Dashed', icon: <LineStyleIcon lineStyle="dashed" /> },
     { value: 'dotted', label: 'Dotted', icon: <LineStyleIcon lineStyle="dotted" /> },
 ];
+
+export interface DarkColor {
+    label: string;
+    /** The dark mode colour, or undefined to keep the light one. */
+    value: string | undefined;
+    /** The light mode colour, shown while no dark one is set. */
+    light: string;
+    onChange: (value: string | undefined) => void;
+}
+
+/**
+ * Colours for dark mode. Each shows its light colour until one is picked; the
+ * clear button goes back to the light colour.
+ */
+export function DarkModeFields({ colors }: { colors: readonly DarkColor[] }) {
+    return (
+        <fieldset>
+            <legend>Dark mode</legend>
+            {colors.map(({ label, value, light, onChange }) => (
+                <label key={label}>
+                    {label}
+                    <span className="mb-dark-color">
+                        <input
+                            type="color"
+                            value={value ?? light}
+                            onChange={(event) => onChange(event.target.value)}
+                        />
+                        {value !== undefined && (
+                            <button
+                                type="button"
+                                className="mb-clear"
+                                aria-label={`Clear ${label.toLowerCase()}`}
+                                title="Same as in light mode"
+                                onClick={(event) => {
+                                    // Keep the click from reaching the colour input through the label.
+                                    event.preventDefault();
+                                    onChange(undefined);
+                                }}
+                            >
+                                ×
+                            </button>
+                        )}
+                    </span>
+                </label>
+            ))}
+        </fieldset>
+    );
+}

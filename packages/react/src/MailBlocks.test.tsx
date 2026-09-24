@@ -672,3 +672,95 @@ describe('<MailBlocks /> theme', () => {
         expect(editor(container).dataset.theme).toBe('light');
     });
 });
+
+describe('<MailBlocks /> dark mode colours', () => {
+    function textDoc() {
+        const doc = documentWith(createTextBlock('<p>Hello</p>'));
+        doc.styles.darkContentBackgroundColor = '#111111';
+        return doc;
+    }
+
+    it('sets a dark colour for the selected block and clears it again', async () => {
+        const onChange = vi.fn();
+        render(<Harness initial={textDoc()} onChange={onChange} />);
+        await userEvent.click(screen.getByText('Hello'));
+
+        const dark = screen.getByLabelText('Dark color') as HTMLInputElement;
+        // Shows the light colour until a dark one is picked.
+        expect(dark.value).toBe('#000000');
+        expect(screen.queryByRole('button', { name: 'Clear dark color' })).toBeNull();
+
+        fireEvent.change(dark, { target: { value: '#eeeeee' } });
+        let block = onChange.mock.lastCall![0].rows[0].columns[0].blocks[0] as TextBlock;
+        expect(block.styles.darkColor).toBe('#eeeeee');
+        expect(block.styles.color).toBe('#000000');
+
+        await userEvent.click(screen.getByRole('button', { name: 'Clear dark color' }));
+        block = onChange.mock.lastCall![0].rows[0].columns[0].blocks[0] as TextBlock;
+        expect(block.styles.darkColor).toBeUndefined();
+    });
+
+    it('previews the email in its dark colours, keeping light ones where none is set', async () => {
+        const doc = textDoc();
+        (doc.rows[0]!.columns[0]!.blocks[0] as TextBlock).styles.darkColor = '#eeeeee';
+        const { container } = render(<Harness initial={doc} />);
+        const content = container.querySelector('.mb-content') as HTMLElement;
+        const canvas = container.querySelector('.mb-canvas') as HTMLElement;
+        const text = screen.getByText('Hello').closest('.mb-block') as HTMLElement;
+
+        expect(content.style.backgroundColor).toBe('rgb(255, 255, 255)');
+        expect(text.style.color).toBe('rgb(0, 0, 0)');
+
+        await userEvent.click(screen.getByRole('button', { name: 'Dark' }));
+        expect(content.style.backgroundColor).toBe('rgb(17, 17, 17)');
+        expect(text.style.color).toBe('rgb(238, 238, 238)');
+        // The email background has no dark colour, so it stays as it is.
+        expect(canvas.style.backgroundColor).toBe('rgb(244, 244, 244)');
+
+        await userEvent.click(screen.getByRole('button', { name: 'Light' }));
+        expect(text.style.color).toBe('rgb(0, 0, 0)');
+    });
+
+    it('does not bake dark colours into the text when typing in the dark preview', async () => {
+        const onChange = vi.fn();
+        const doc = textDoc();
+        (doc.rows[0]!.columns[0]!.blocks[0] as TextBlock).styles.darkColor = '#eeeeee';
+        render(<Harness initial={doc} onChange={onChange} />);
+        await userEvent.click(screen.getByRole('button', { name: 'Dark' }));
+
+        const text = screen.getByText('Hello').closest('.mb-block') as HTMLElement;
+        text.innerHTML = '<p>Hello there</p>';
+        fireEvent.input(text);
+        const block = onChange.mock.lastCall![0].rows[0].columns[0].blocks[0] as TextBlock;
+        expect(block.html).toBe('<p>Hello there</p>');
+        expect(block.styles.color).toBe('#000000');
+    });
+
+    it('offers dark backgrounds for the email and for rows, starting from the light ones', async () => {
+        const { container } = render(<Harness initial={textDoc()} />);
+        expect((screen.getByLabelText('Dark background') as HTMLInputElement).value).toBe(
+            '#f4f4f4',
+        );
+        expect((screen.getByLabelText('Dark content background') as HTMLInputElement).value).toBe(
+            '#111111',
+        );
+
+        await userEvent.click(container.querySelector('.mb-row') as HTMLElement);
+        // A row without a background of its own starts from the content's.
+        expect((screen.getByLabelText('Dark background') as HTMLInputElement).value).toBe(
+            '#ffffff',
+        );
+    });
+
+    it('warns where dark colours cannot be shown', async () => {
+        render(<Harness initial={textDoc()} />);
+        await userEvent.click(screen.getByText('Hello'));
+        fireEvent.change(screen.getByLabelText('Dark color'), { target: { value: '#eeeeee' } });
+        // Gmail and Outlook on Windows, of the default targets; Apple Mail on iOS shows them.
+        const warnings = screen.getAllByText('darkColor').map((element) => element.parentElement!);
+        expect(warnings.map((warning) => warning.textContent)).toEqual([
+            'not supporteddarkColor in gmail desktop-webmail',
+            'not supporteddarkColor in outlook windows',
+        ]);
+    });
+});

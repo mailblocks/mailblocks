@@ -450,6 +450,30 @@
     border-color: var(--mb-danger-border);
 }
 
+.mb-dark-color {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.mb-clear {
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    font: inherit;
+    line-height: 1;
+    color: var(--mb-text-muted);
+    background: var(--mb-bg);
+    border: 1px solid var(--mb-border-strong);
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.mb-clear:hover {
+    color: var(--mb-text);
+    background: var(--mb-bg-hover);
+}
+
 .mb-muted {
     color: var(--mb-text-muted);
     font-weight: normal;

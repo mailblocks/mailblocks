@@ -1,14 +1,21 @@
 import type { ButtonBlock } from '@mailblocks/core';
+import { withScheme, type ColorScheme } from './colors';
 
 interface ButtonBlockViewProps {
     block: ButtonBlock;
     selected: boolean;
     onSelect: () => void;
+    scheme?: ColorScheme;
 }
 
 /** A button block. The label and link are edited in the inspector; the button is not clickable here. */
-export function ButtonBlockView({ block, selected, onSelect }: ButtonBlockViewProps) {
-    const s = block.styles;
+export function ButtonBlockView({
+    block,
+    selected,
+    onSelect,
+    scheme = 'light',
+}: ButtonBlockViewProps) {
+    const s = withScheme(block.styles, scheme);
 
     return (
         <div

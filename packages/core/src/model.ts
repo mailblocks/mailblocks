@@ -4,6 +4,10 @@
  * An email is a vertical stack of rows. Each row splits its width into columns,
  * and each column holds a vertical stack of blocks. This mirrors the nested
  * `<table>` layout that email clients can actually render.
+ *
+ * Colours can have a dark mode counterpart (`darkColor`, `darkBackgroundColor`,
+ * …). Clients that let an email choose its dark colours use them; the others
+ * show the light colours or darken the email on their own.
  */
 
 export interface EmailDocument {
@@ -23,6 +27,10 @@ export interface DocumentStyles {
     contentBackgroundColor: string;
     /** Font stack used by text that does not set its own. */
     fontFamily: string;
+    /** `backgroundColor` in dark mode; unset keeps the light one. */
+    darkBackgroundColor?: string;
+    /** `contentBackgroundColor` in dark mode; unset keeps the light one. */
+    darkContentBackgroundColor?: string;
 }
 
 export interface Row {
@@ -33,6 +41,8 @@ export interface Row {
 
 export interface RowStyles {
     backgroundColor?: string;
+    /** `backgroundColor` in dark mode; unset keeps the light one. */
+    darkBackgroundColor?: string;
     paddingTop: number;
     paddingBottom: number;
     /**
@@ -69,6 +79,8 @@ export interface TextStyles {
     fontSize: number;
     lineHeight: number;
     color: string;
+    /** `color` in dark mode; unset keeps the light one. */
+    darkColor?: string;
     textAlign: 'left' | 'center' | 'right';
     paddingTop: number;
     paddingRight: number;
@@ -113,6 +125,10 @@ export interface ButtonStyles {
     align: 'left' | 'center' | 'right';
     backgroundColor: string;
     color: string;
+    /** `backgroundColor` in dark mode; unset keeps the light one. */
+    darkBackgroundColor?: string;
+    /** `color` in dark mode; unset keeps the light one. */
+    darkColor?: string;
     fontFamily?: string;
     fontSize: number;
     bold: boolean;
@@ -136,6 +152,8 @@ export interface DividerBlock {
 
 export interface DividerStyles {
     color: string;
+    /** `color` in dark mode; unset keeps the light one. */
+    darkColor?: string;
     /** Line thickness in pixels. */
     thickness: number;
     lineStyle: 'solid' | 'dashed' | 'dotted';
