@@ -37,6 +37,32 @@
     cursor: pointer;
 }
 
+.mb-toolbar-spacer {
+    flex: 1;
+}
+
+.mb-toolbar-group {
+    display: inline-flex;
+}
+
+.mb-toolbar-group button {
+    border-radius: 0;
+}
+
+.mb-toolbar-group button:first-child {
+    border-radius: 4px 0 0 4px;
+}
+
+.mb-toolbar-group button:last-child {
+    margin-left: -1px;
+    border-radius: 0 4px 4px 0;
+}
+
+.mb-toolbar-group button[aria-pressed='true'] {
+    color: #1d4ed8;
+    background: #dbeafe;
+}
+
 .mb-toolbar button:disabled {
     color: #9ca3af;
     cursor: default;
@@ -70,6 +96,10 @@
 .mb-row-selected:hover {
     outline: 2px solid #818cf8;
     outline-offset: -2px;
+}
+
+.mb-row-stacked {
+    flex-direction: column;
 }
 
 .mb-column {

@@ -600,3 +600,54 @@ describe('<MailBlocks /> client report', () => {
         expect(screen.getByRole('heading', { name: 'Image' })).toBeTruthy();
     });
 });
+
+describe('<MailBlocks /> phone preview and stacking', () => {
+    function twoColumnDoc() {
+        const doc = createEmptyDocument();
+        const row = createRow(2);
+        row.columns[0]?.blocks.push(createTextBlock('<p>Left</p>'));
+        row.columns[1]?.blocks.push(createTextBlock('<p>Right</p>'));
+        doc.rows.push(row);
+        return doc;
+    }
+
+    it('shows the email at phone width with stacking rows stacked', async () => {
+        const { container } = render(<Harness initial={twoColumnDoc()} />);
+        const content = container.querySelector('.mb-content') as HTMLElement;
+        const row = container.querySelector('.mb-row') as HTMLElement;
+
+        expect(content.style.width).toBe('600px');
+        expect(row.classList.contains('mb-row-stacked')).toBe(false);
+
+        await userEvent.click(screen.getByRole('button', { name: 'Mobile' }));
+        expect(content.style.width).toBe('375px');
+        expect(row.classList.contains('mb-row-stacked')).toBe(true);
+        expect(
+            [...row.querySelectorAll('.mb-column')].map((c) => (c as HTMLElement).style.width),
+        ).toEqual(['100%', '100%']);
+
+        await userEvent.click(screen.getByRole('button', { name: 'Desktop' }));
+        expect(content.style.width).toBe('600px');
+    });
+
+    it('keeps a row side by side on phones when stacking is turned off', async () => {
+        const { container } = render(<Harness initial={twoColumnDoc()} />);
+        const row = container.querySelector('.mb-row') as HTMLElement;
+
+        await userEvent.click(row);
+        const stack = screen.getByLabelText('Stack on phones') as HTMLInputElement;
+        expect(stack.checked).toBe(true);
+        await userEvent.click(stack);
+
+        await userEvent.click(screen.getByRole('button', { name: 'Mobile' }));
+        expect(row.classList.contains('mb-row-stacked')).toBe(false);
+    });
+
+    it('only offers stacking for rows with several columns', async () => {
+        const { container } = render(
+            <Harness initial={documentWith(createTextBlock('<p>Solo</p>'))} />,
+        );
+        await userEvent.click(container.querySelector('.mb-row') as HTMLElement);
+        expect(screen.queryByLabelText('Stack on phones')).toBeNull();
+    });
+});

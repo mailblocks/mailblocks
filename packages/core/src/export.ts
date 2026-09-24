@@ -17,10 +17,20 @@ import type {
  * layout, inline styles on every cell, pixel units, and a few Outlook-only
  * hints in conditional comments. Nothing here depends on the DOM, so it runs
  * in the browser and on the server alike.
+ *
+ * The content is fluid up to its width, so it fits narrow screens. Rows with
+ * several columns stack on those screens: see {@link renderStackingRow}.
  */
 export function exportHtml(doc: EmailDocument): string {
     const { backgroundColor, contentWidth, contentBackgroundColor, fontFamily } = doc.styles;
     const rows = doc.rows.map((row) => renderRow(row, doc)).join('\n');
+    // Where media queries work, stacked columns also stretch to the full width.
+    const stackingStyles = doc.rows.some(stacks)
+        ? `
+@media only screen and (max-width: ${contentWidth}px) {
+.mb-col { max-width: 100% !important; }
+}`
+        : '';
 
     return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
@@ -42,16 +52,18 @@ export function exportHtml(doc: EmailDocument): string {
 body { margin: 0; padding: 0; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
 table { border-collapse: collapse; mso-table-lspace: 0; mso-table-rspace: 0; }
 img { border: 0; line-height: 100%; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; }
-p { margin: 0; }
+p { margin: 0; }${stackingStyles}
 </style>
 </head>
 <body style="margin:0;padding:0;background-color:${attr(backgroundColor)};">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${attr(backgroundColor)}" style="background-color:${attr(backgroundColor)};">
 <tr>
 <td align="center" style="padding:0;">
-<table role="presentation" width="${contentWidth}" cellpadding="0" cellspacing="0" border="0" bgcolor="${attr(contentBackgroundColor)}" style="width:${contentWidth}px;max-width:${contentWidth}px;background-color:${attr(contentBackgroundColor)};font-family:${attr(fontFamily)};">
+<!--[if mso]><table role="presentation" width="${contentWidth}" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
+<table role="presentation" width="100%" align="center" cellpadding="0" cellspacing="0" border="0" bgcolor="${attr(contentBackgroundColor)}" style="width:100%;max-width:${contentWidth}px;margin:0 auto;background-color:${attr(contentBackgroundColor)};font-family:${attr(fontFamily)};">
 ${rows}
 </table>
+<!--[if mso]></td></tr></table><![endif]-->
 </td>
 </tr>
 </table>
@@ -60,15 +72,20 @@ ${rows}
 `;
 }
 
+/** Whether a row's columns go below each other on narrow screens. */
+function stacks(row: Row): boolean {
+    return row.columns.length > 1 && row.styles.stackOnMobile !== false;
+}
+
 function renderRow(row: Row, doc: EmailDocument): string {
+    if (stacks(row)) return renderStackingRow(row, doc);
     const { backgroundColor, paddingTop, paddingBottom } = row.styles;
     const styles = [
         `padding:${px(paddingTop)} 0 ${px(paddingBottom)} 0`,
         backgroundColor !== undefined && `background-color:${attr(backgroundColor)}`,
     ];
     const columns = row.columns.map((column) => renderColumn(column, doc)).join('\n');
-    // The bgcolor attribute backs up the CSS, which some webmails only honour for colour keywords.
-    const bgcolor = backgroundColor !== undefined ? ` bgcolor="${attr(backgroundColor)}"` : '';
+    const bgcolor = rowBgcolor(row);
 
     return `<tr>
 <td${bgcolor} style="${css(styles)}">
@@ -79,6 +96,66 @@ ${columns}
 </table>
 </td>
 </tr>`;
+}
+
+/**
+ * A row whose columns stack on narrow screens, the "hybrid" way:
+ *
+ * - Each column is an inline-block `div`, 100% wide but no wider than its
+ *   desktop width. Side by side on wide screens, they wrap below each other
+ *   when the screen is too narrow, with no media query needed, which matters
+ *   because many clients drop media queries or the whole `<style>`.
+ * - Outlook on Windows ignores inline-block and max-width on divs, so it gets
+ *   a real table in conditional comments and keeps the desktop layout.
+ * - The cell has a zero font size so the whitespace between the inline-blocks
+ *   does not add gaps; each column restores a normal size.
+ *
+ * Column widths are rounded down to whole pixels so they never add up to more
+ * than the content width, which would wrap them on desktop too.
+ */
+function renderStackingRow(row: Row, doc: EmailDocument): string {
+    const { backgroundColor, paddingTop, paddingBottom } = row.styles;
+    const styles = [
+        `padding:${px(paddingTop)} 0 ${px(paddingBottom)} 0`,
+        'text-align:center',
+        'font-size:0',
+        backgroundColor !== undefined && `background-color:${attr(backgroundColor)}`,
+    ];
+    const columns = row.columns
+        .map((column) => {
+            const width = Math.floor((doc.styles.contentWidth * column.width) / 100);
+            const blocks = column.blocks.map((block) => renderBlock(block, doc, width)).join('\n');
+            const columnStyles = [
+                'display:inline-block',
+                'width:100%',
+                `max-width:${px(width)}`,
+                'vertical-align:top',
+                'text-align:left',
+                'font-size:16px',
+            ];
+            return `<!--[if mso]><td valign="top" width="${width}"><![endif]-->
+<div class="mb-col" style="${css(columnStyles)}">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+${blocks}
+</table>
+</div>
+<!--[if mso]></td><![endif]-->`;
+        })
+        .join('\n');
+
+    return `<tr>
+<td${rowBgcolor(row)} style="${css(styles)}">
+<!--[if mso]><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><![endif]-->
+${columns}
+<!--[if mso]></tr></table><![endif]-->
+</td>
+</tr>`;
+}
+
+/** The bgcolor attribute backs up the CSS, which some webmails only honour for colour keywords. */
+function rowBgcolor(row: Row): string {
+    const { backgroundColor } = row.styles;
+    return backgroundColor !== undefined ? ` bgcolor="${attr(backgroundColor)}"` : '';
 }
 
 function renderColumn(column: Column, doc: EmailDocument): string {

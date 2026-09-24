@@ -27,8 +27,13 @@ const BLOCK_TYPES: { type: Block['type']; label: string; create: () => Block }[]
     { type: 'spacer', label: 'Spacer', create: () => createSpacerBlock() },
 ];
 
+/** Width of the phone preview, a common phone screen in CSS pixels. */
+export const MOBILE_PREVIEW_WIDTH = 375;
+
 interface CanvasProps {
     doc: EmailDocument;
+    /** Shows the email as a phone would, with stacking rows stacked. */
+    preview: 'desktop' | 'mobile';
     /** `mergeKey` groups consecutive edits of the same thing into one undo step. */
     onChange: (doc: EmailDocument, mergeKey?: string) => void;
     selection: Selection | undefined;
@@ -36,8 +41,12 @@ interface CanvasProps {
 }
 
 /** Renders the document roughly as the export will, with every block editable in place. */
-export function Canvas({ doc, onChange, selection, onSelect }: CanvasProps) {
+export function Canvas({ doc, preview, onChange, selection, onSelect }: CanvasProps) {
     const { backgroundColor, contentWidth, contentBackgroundColor, fontFamily } = doc.styles;
+    const mobile = preview === 'mobile' && contentWidth > MOBILE_PREVIEW_WIDTH;
+    // Same rule as the export: several columns, and not opted out.
+    const stacked = (row: EmailDocument['rows'][number]) =>
+        mobile && row.columns.length > 1 && row.styles.stackOnMobile !== false;
 
     const add = (columnId: string, block: Block) => {
         onChange(addBlock(doc, columnId, block));
@@ -57,12 +66,22 @@ export function Canvas({ doc, onChange, selection, onSelect }: CanvasProps) {
         <div className="mb-canvas" style={{ backgroundColor }} onClick={() => onSelect(undefined)}>
             <div
                 className="mb-content"
-                style={{ width: contentWidth, backgroundColor: contentBackgroundColor, fontFamily }}
+                style={{
+                    width: mobile ? MOBILE_PREVIEW_WIDTH : contentWidth,
+                    backgroundColor: contentBackgroundColor,
+                    fontFamily,
+                }}
             >
                 {doc.rows.map((row) => (
                     <div
                         key={row.id}
-                        className={isSelected('row', row.id) ? 'mb-row mb-row-selected' : 'mb-row'}
+                        className={[
+                            'mb-row',
+                            isSelected('row', row.id) && 'mb-row-selected',
+                            stacked(row) && 'mb-row-stacked',
+                        ]
+                            .filter(Boolean)
+                            .join(' ')}
                         data-row-id={row.id}
                         onClick={(event) => {
                             event.stopPropagation();
@@ -78,7 +97,7 @@ export function Canvas({ doc, onChange, selection, onSelect }: CanvasProps) {
                             <div
                                 key={column.id}
                                 className="mb-column"
-                                style={{ width: `${column.width}%` }}
+                                style={{ width: stacked(row) ? '100%' : `${column.width}%` }}
                             >
                                 {column.blocks.map((block) => (
                                     <BlockView
