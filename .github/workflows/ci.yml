@@ -25,6 +25,8 @@ jobs:
             - run: pnpm format:check
             - run: pnpm typecheck
             - run: pnpm test
+            - name: The demo builds
+              run: pnpm --filter playground-react build
             - name: Generated Can I Email data is up to date
               run: |
                   pnpm data:build

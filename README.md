@@ -7,6 +7,9 @@ half of it does not render. mailblocks checks every style in the document agains
 [Can I Email](https://www.caniemail.com) data for the clients you care about, tells you what is
 not supported and why, and exports table-based HTML that those clients can actually render.
 
+**[Try the demo](https://mailblocks.github.io/mailblocks/)**: the React editor in your browser,
+nothing to install.
+
 > **Status:** early development. The core library and a first React editor work and are tested;
 > nothing is published to npm yet. APIs will change until 1.0.
 
@@ -141,7 +144,7 @@ email keeps its own colours.
 git clone https://github.com/mailblocks/mailblocks.git
 cd mailblocks
 pnpm install
-pnpm dev:react    # React editor on http://localhost:5174
+pnpm dev:react    # React editor on http://localhost:5174, the same app as the demo
 pnpm dev          # core playground (document as JSON) on http://localhost:5173
 pnpm test
 ```

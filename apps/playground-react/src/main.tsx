@@ -1,48 +1,71 @@
-import {
-    createEmptyDocument,
-    createRow,
-    createTextBlock,
-    exportHtml,
-    type EmailDocument,
-} from '@mailblocks/core';
+import { exportHtml, type EmailDocument } from '@mailblocks/core';
 import { MailBlocks, type MailBlocksProps } from '@mailblocks/react';
 import '@mailblocks/react/styles.css';
-import { StrictMode, useState } from 'react';
+import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { sampleDocument } from './sample';
 import './style.css';
 
-function sampleDocument(): EmailDocument {
-    const doc = createEmptyDocument();
+const REPOSITORY = 'https://github.com/mailblocks/mailblocks';
+const STORAGE_KEY = 'mailblocks-demo-document';
 
-    const hero = createRow();
-    hero.styles.paddingTop = 20;
-    hero.styles.paddingBottom = 20;
-    const title = createTextBlock('<p><strong>Hello from mailblocks</strong></p>');
-    title.styles.fontSize = 28;
-    title.styles.textAlign = 'center';
-    hero.columns[0]?.blocks.push(
-        title,
-        createTextBlock('<p>Click a block to edit it. Type straight into the text.</p>'),
-    );
+/** The document saved by an earlier visit, if there is a usable one. */
+function savedDocument(): EmailDocument | undefined {
+    try {
+        const saved = JSON.parse(
+            localStorage.getItem(STORAGE_KEY) ?? 'null',
+        ) as EmailDocument | null;
+        return saved?.version === 1 && Array.isArray(saved.rows) ? saved : undefined;
+    } catch {
+        return undefined;
+    }
+}
 
-    const columns = createRow(2);
-    columns.columns[0]?.blocks.push(createTextBlock('<p>Left column.</p>'));
-    columns.columns[1]?.blocks.push(createTextBlock('<p>Right column.</p>'));
+function save(doc: EmailDocument) {
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(doc));
+    } catch {
+        // Private windows and full storage: the demo still works, it just forgets.
+    }
+}
 
-    doc.rows.push(hero, columns);
-    return doc;
+function download(html: string) {
+    const url = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'email.html';
+    link.click();
+    URL.revokeObjectURL(url);
 }
 
 function App() {
-    const [doc, setDoc] = useState(sampleDocument);
-    const [showPreview, setShowPreview] = useState(false);
+    const [doc, setDoc] = useState(() => savedDocument() ?? sampleDocument());
+    const [showExport, setShowExport] = useState(false);
     const [theme, setTheme] = useState<MailBlocksProps['theme']>('system');
+    const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
+
+    useEffect(() => save(doc), [doc]);
+
+    const copy = async () => {
+        try {
+            await navigator.clipboard.writeText(exportHtml(doc));
+            setCopyState('copied');
+        } catch {
+            // The clipboard can be refused; Download still works.
+            setCopyState('failed');
+        }
+        setTimeout(() => setCopyState('idle'), 1500);
+    };
 
     return (
         <div className="app">
             <header>
-                <strong>mailblocks react playground</strong>
-                <span className="spacer" />
+                <div className="brand">
+                    <strong>mailblocks</strong>
+                    <span className="tagline">
+                        An email builder that knows which email clients will break your design.
+                    </span>
+                </div>
                 <label>
                     Theme{' '}
                     <select
@@ -54,14 +77,30 @@ function App() {
                         <option value="dark">Dark</option>
                     </select>
                 </label>
-                <button type="button" onClick={() => setShowPreview((value) => !value)}>
-                    {showPreview ? 'Hide export' : 'Show export'}
+                <button
+                    type="button"
+                    title="Start over from the sample email"
+                    onClick={() => setDoc(sampleDocument())}
+                >
+                    Reset
                 </button>
+                <button type="button" onClick={() => setShowExport((value) => !value)}>
+                    {showExport ? 'Hide export' : 'Show export'}
+                </button>
+                <button type="button" onClick={copy}>
+                    {{ idle: 'Copy HTML', copied: 'Copied', failed: 'Copy failed' }[copyState]}
+                </button>
+                <button type="button" onClick={() => download(exportHtml(doc))}>
+                    Download
+                </button>
+                <a className="github" href={REPOSITORY} target="_blank" rel="noreferrer">
+                    GitHub
+                </a>
             </header>
             <div className="editor">
                 <MailBlocks document={doc} onChange={setDoc} theme={theme} />
             </div>
-            {showPreview && (
+            {showExport && (
                 <iframe className="preview" title="Exported email" srcDoc={exportHtml(doc)} />
             )}
         </div>
