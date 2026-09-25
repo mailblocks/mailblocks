@@ -291,3 +291,15 @@ export function tidyEditable(root: HTMLElement): boolean {
     }
     return true;
 }
+
+/**
+ * A text block's HTML cut down to what a text block keeps, the way
+ * {@link tidyEditable} does it. The HTML is parsed into a separate, inert
+ * document, so nothing in it runs or loads while it is cleaned. Use it for
+ * HTML from anywhere untrusted, such as an imported file.
+ */
+export function cleanTextHtml(html: string): string {
+    const body = new DOMParser().parseFromString(html, 'text/html').body;
+    tidyEditable(body);
+    return body.innerHTML;
+}

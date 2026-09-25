@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { cleanPastedHtml, isSafeHref, plainTextToHtml, tidyEditable } from './sanitize';
+import {
+    cleanPastedHtml,
+    cleanTextHtml,
+    isSafeHref,
+    plainTextToHtml,
+    tidyEditable,
+} from './sanitize';
 
 describe('cleanPastedHtml()', () => {
     it('keeps a single line inline, so it joins the line the caret is on', () => {
@@ -179,5 +185,25 @@ describe('tidyEditable()', () => {
         const selection = document.getSelection()!;
         expect(selection.anchorNode).toBe(text);
         expect(selection.anchorOffset).toBe(2);
+    });
+});
+
+describe('cleanTextHtml()', () => {
+    it('keeps the paragraphs and formats of a text block', () => {
+        expect(
+            cleanTextHtml(
+                '<p>Hi <b>there</b><br>again</p><p><a href="https://example.com">x</a></p>',
+            ),
+        ).toBe('<p>Hi <b>there</b><br>again</p><p><a href="https://example.com">x</a></p>');
+    });
+
+    it('removes what could run, load or restyle', () => {
+        expect(
+            cleanTextHtml(
+                '<p onclick="alert(1)">Hi<img src="x" onerror="alert(1)"><script>alert(1)</script>' +
+                    '<a href="javascript:alert(1)">link</a><span style="color:red">red</span></p>' +
+                    '<div>next</div><style>p{display:none}</style>',
+            ),
+        ).toBe('<p>Hilinkred</p><p>next</p>');
     });
 });

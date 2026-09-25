@@ -8,7 +8,7 @@ half of it does not render. mailblocks checks every style in the document agains
 not supported and why, and exports table-based HTML that those clients can actually render.
 
 **[Try the demo](https://mailblocks.github.io/mailblocks/)**: the React editor in your browser,
-nothing to install.
+nothing to install. Download your email as HTML, or as JSON to open it again later.
 
 > **Status:** early development. The core library and a first React editor work and are tested;
 > nothing is published to npm yet. APIs will change until 1.0.
@@ -39,6 +39,10 @@ nothing to install.
   and through the attributes Outlook.com adds in its own dark mode. Light colours stay inline for
   every other client. Where a client cannot show them (Gmail, Outlook on Windows), the check says
   so.
+- **Saving** – `serializeDocument(doc)` writes the email as JSON and `parseDocument(json)` reads
+  it back. Reading checks every field and says which one is wrong (`rows[0].columns[1].width:
+expected a number`), leaves out fields it does not know, and repairs ids used twice. Pass
+  `{ html: cleanTextHtml }` from the React package to clean the text of files you do not trust.
 - **React editor** – `<MailBlocks>` lets you type into text blocks in place and add any block
   type. Text pasted from Word, Google Docs or a web page keeps its paragraphs, bold, italic and
   safe links, and nothing else. A toolbar above the selected block makes words bold, italic or a

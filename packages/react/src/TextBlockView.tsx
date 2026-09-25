@@ -1,7 +1,7 @@
 import type { TextBlock } from '@mailblocks/core';
 import { useEffect, useState, type ClipboardEvent, type FormEvent } from 'react';
 import { withScheme, type ColorScheme } from './colors';
-import { cleanPastedHtml, plainTextToHtml, tidyEditable } from './sanitize';
+import { cleanPastedHtml, cleanTextHtml, plainTextToHtml, tidyEditable } from './sanitize';
 
 /** Undoes the escaping of text that cleanPastedHtml and plainTextToHtml did. */
 const unescapeText = (html: string) =>
@@ -28,8 +28,12 @@ export function TextBlockView({
     // React never re-renders the inner HTML (the element has no children), so
     // typing does not move the caret. Only push the document's HTML into the
     // element when it differs, i.e. after an external change such as undo.
+    // It is cleaned first: the document may come from a file or a host that
+    // holds more than a text block should, such as an <img onerror>.
     useEffect(() => {
-        if (element && element.innerHTML !== block.html) element.innerHTML = block.html;
+        if (element && element.innerHTML !== block.html) {
+            element.innerHTML = cleanTextHtml(block.html);
+        }
     }, [element, block.html]);
 
     const s = withScheme(block.styles, scheme);

@@ -80,6 +80,27 @@ header select,
     text-decoration: none;
 }
 
+.message {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 8px 16px;
+    color: #991b1b;
+    background: #fef2f2;
+    border-bottom: 1px solid #fecaca;
+}
+
+.message button {
+    font: inherit;
+    font-size: 12px;
+    padding: 2px 8px;
+    color: inherit;
+    background: transparent;
+    border: 1px solid currentColor;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
 .editor {
     flex: 1;
     min-height: 0;

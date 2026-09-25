@@ -1338,3 +1338,17 @@ describe('<MailBlocks /> pasting into text', () => {
         expect(block.innerHTML).toBe('<p>Hello joined</p><p>next</p>');
     });
 });
+
+describe('<MailBlocks /> with untrusted text', () => {
+    it('shows only what a text block keeps, whatever the document holds', () => {
+        const doc = documentWith(
+            createTextBlock(
+                '<p>Safe<img src="x" onerror="alert(1)"><b style="color:red">bold</b></p>',
+            ),
+        );
+        const { container } = render(<MailBlocks document={doc} onChange={vi.fn()} />);
+        const text = container.querySelector('.mb-block') as HTMLElement;
+        expect(text.innerHTML).toBe('<p>Safe<b>bold</b></p>');
+        expect(text.querySelector('img')).toBeNull();
+    });
+});

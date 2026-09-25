@@ -7,3 +7,4 @@ export * from './lint';
 export * from './model';
 export * from './operations';
 export * from './report';
+export * from './serialize';
