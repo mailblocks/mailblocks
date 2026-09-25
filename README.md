@@ -24,6 +24,10 @@ nothing to install.
   checked too, so a `.webp` or `.svg` warns for clients that cannot show it.
   `clientReport(doc)` runs the check for every client Can I Email knows and rates each one:
   works, unknown, partial support or problems.
+- **Email checks** – `lint(doc)` finds what no CSS property explains: an email over the 102 KB
+  where Gmail clips it, links that cannot work in an inbox (relative, `javascript:`, empty; merge
+  tags like `{{unsubscribe_url}}` are fine), buttons without a link, images without a URL or alt
+  text, and text below WCAG AA contrast, in dark mode too when the email has dark colours.
 - **HTML export** – `exportHtml(doc)` renders nested tables with inline styles, pixel units and
   the Outlook-specific hints that keep it from mangling the result: buttons whose colour and
   padding sit on a table cell (and rounded ones redrawn in VML for Outlook on Windows), dividers
@@ -39,9 +43,11 @@ nothing to install.
   type. A toolbar above the selected block makes words bold, italic or a link (Ctrl+B, Ctrl+I,
   Ctrl+K), sets a button's bold and link or an image's link, aligns the block, and moves,
   duplicates (Ctrl+D) or removes it (Delete). The inspector holds the rest of its styles, in
-  sections that fold away, with every colour as a picker and as hex text, and its warnings. Every block, row and the email itself carries a marker on the canvas when it has
-  issues in the target clients, coloured by the worst one; clicking it opens those warnings. Each
-  warning says what it means for the reader and links to the Can I Email result it comes from.
+  sections that fold away, with every colour as a picker and as hex text, and its warnings.
+  Every block, row and the email itself carries a marker on the canvas when the checks or the
+  target clients find an issue, coloured by the worst one; clicking it opens them. Each warning
+  says what it means for the reader, and compatibility warnings link to the Can I Email result
+  they come from.
   Select a row to change its column layout (up to six columns, with custom widths), background,
   padding and order; select nothing to set the email background, content width and font. A
   Desktop / Mobile switch previews the phone layout, and each row can opt out of stacking. A

@@ -789,7 +789,7 @@ describe('<MailBlocks /> dark mode colours', () => {
 describe('<MailBlocks /> compatibility markers on the canvas', () => {
     const OUTLOOK_WINDOWS = [{ family: 'outlook', platform: 'windows' }] as const;
     const ORANGE = [{ family: 'orange', platform: 'desktop-webmail' }] as const;
-    const markers = () => screen.queryAllByRole('button', { name: /compatibility issue/ });
+    const markers = () => screen.queryAllByRole('button', { name: / issues?$/ });
 
     function imageDoc(src = 'https://example.com/a.webp') {
         return documentWith(createImageBlock(src, 'Photo'), createTextBlock('<p>Hello</p>'));
@@ -801,7 +801,7 @@ describe('<MailBlocks /> compatibility markers on the canvas', () => {
         );
 
         expect(markers()).toHaveLength(1);
-        const marker = screen.getByRole('button', { name: 'Image block: 1 compatibility issue' });
+        const marker = screen.getByRole('button', { name: 'Image block: 1 issue' });
         expect(marker.classList.contains('mb-marker-n')).toBe(true);
         expect(marker.title).toBe('Image format: not supported in Outlook Windows');
     });
@@ -1177,5 +1177,81 @@ describe('<MailBlocks /> inspector layout', () => {
             false,
             true,
         ]);
+    });
+});
+
+describe('<MailBlocks /> email checks', () => {
+    // Apple Mail on iOS supports everything these documents use, so any marker comes from lint().
+    const APPLE = [{ family: 'apple-mail', platform: 'ios' }] as const;
+
+    it('marks an image without alt text and explains it in the inspector', async () => {
+        render(
+            <MailBlocks
+                document={documentWith(createImageBlock('https://example.com/a.png', ''))}
+                onChange={vi.fn()}
+                targets={[...APPLE]}
+            />,
+        );
+        const marker = screen.getByRole('button', { name: 'Image block: 1 issue' });
+        expect(marker.classList.contains('mb-marker-a')).toBe(true);
+        expect(marker.title).toBe('The image has no alt text.');
+
+        await userEvent.click(marker);
+        const issue = screen.getByText('The image has no alt text.').closest('li')!;
+        expect(within(issue).getByText('warning')).toBeTruthy();
+        expect(within(issue).getByText(/screen readers/)).toBeTruthy();
+    });
+
+    it('marks a broken link in red', () => {
+        render(
+            <MailBlocks
+                document={documentWith(createButtonBlock('Shop', 'shop.html'))}
+                onChange={vi.fn()}
+                targets={[...APPLE]}
+            />,
+        );
+        const marker = screen.getByRole('button', { name: 'Button block: 1 issue' });
+        expect(marker.classList.contains('mb-marker-n')).toBe(true);
+        expect(marker.title).toBe('The button\'s link will not work: "shop.html".');
+    });
+
+    it('counts issues and compatibility warnings together', () => {
+        render(
+            <MailBlocks
+                document={documentWith(createImageBlock('https://example.com/a.webp', ''))}
+                onChange={vi.fn()}
+                targets={[{ family: 'outlook', platform: 'windows' }]}
+            />,
+        );
+        const marker = screen.getByRole('button', { name: 'Image block: 2 issues' });
+        expect(marker.title.split('\n')).toEqual([
+            'The image has no alt text.',
+            'Image format: not supported in Outlook Windows',
+        ]);
+    });
+
+    it('warns on the email itself when Gmail would clip it', () => {
+        const doc = documentWith(createTextBlock(`<p>${'x'.repeat(110 * 1024)}</p>`));
+        render(<MailBlocks document={doc} onChange={vi.fn()} targets={[...APPLE]} />);
+
+        const marker = screen.getByRole('button', { name: 'Email settings: 1 issue' });
+        expect(marker.classList.contains('mb-marker-n')).toBe(true);
+        // Nothing selected, so the email settings show the issue.
+        expect(screen.getByText(/^Gmail will clip this email/)).toBeTruthy();
+    });
+
+    it('flags text that disappears in dark mode, and clears once it has a dark colour', async () => {
+        const doc = documentWith(createTextBlock('<p>Hello</p>'));
+        doc.styles.darkContentBackgroundColor = '#111111';
+        render(<Harness initial={doc} />);
+        expect(screen.getByRole('button', { name: /^Text block: / }).title).toContain(
+            'In dark mode the text is hard to read',
+        );
+
+        await userEvent.click(screen.getByText('Hello'));
+        fireEvent.change(screen.getByLabelText('Dark color'), { target: { value: '#f9fafb' } });
+        expect(screen.getByRole('button', { name: /^Text block: / }).title).not.toContain(
+            'In dark mode',
+        );
     });
 });

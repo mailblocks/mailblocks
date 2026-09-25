@@ -5,6 +5,7 @@ import {
     createHistory,
     duplicateBlock,
     findBlock,
+    lint,
     recordChange,
     redo,
     removeBlock,
@@ -149,6 +150,9 @@ export function MailBlocks({
         side.current?.querySelector('.mb-warnings-title')?.scrollIntoView?.({ block: 'start' });
     }, [revealWarnings]);
 
+    // Worked out once per change, for the canvas markers and the inspector.
+    const issues = useMemo(() => lint(doc), [doc]);
+
     // Only worked out while the report is on screen: it checks every client.
     const report = useMemo(() => (panel === 'clients' ? clientReport(doc) : []), [doc, panel]);
 
@@ -220,6 +224,7 @@ export function MailBlocks({
                     selection={selection}
                     onSelect={select}
                     targets={targets}
+                    issues={issues}
                     onShowWarnings={showWarnings}
                 />
             </div>
@@ -250,6 +255,7 @@ export function MailBlocks({
                             selectedBlock={selectedBlock}
                             selectedRow={selectedRow}
                             targets={targets}
+                            issues={issues}
                         />
                     </SectionsProvider>
                 ) : (
