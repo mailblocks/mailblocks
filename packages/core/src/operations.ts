@@ -108,6 +108,19 @@ export function moveBlock(
     return addBlock(removeBlock(doc, blockId), columnId, block, index);
 }
 
+/**
+ * Puts a copy of a block right after it, with a new id. Returns the document
+ * and the copy, so a UI can select it.
+ */
+export function duplicateBlock(
+    doc: EmailDocument,
+    blockId: string,
+): { doc: EmailDocument; block: Block } {
+    const { block, column, index } = requireBlock(doc, blockId);
+    const copy = { ...structuredClone(block), id: createId() };
+    return { doc: addBlock(doc, column.id, copy, index + 1), block: copy };
+}
+
 /** Merges `styles` into the document styles. */
 export function updateDocumentStyles(
     doc: EmailDocument,

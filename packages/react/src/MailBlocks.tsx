@@ -3,9 +3,11 @@ import {
     canUndo,
     clientReport,
     createHistory,
+    duplicateBlock,
     findBlock,
     recordChange,
     redo,
+    removeBlock,
     undo,
     type EmailDocument,
     type History,
@@ -81,6 +83,8 @@ export function MailBlocks({
     };
 
     const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+        if (event.defaultPrevented) return;
+        if (blockShortcut(event)) return;
         if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
         const key = event.key.toLowerCase();
         if (key === 'z' && !event.shiftKey) {
@@ -90,6 +94,39 @@ export function MailBlocks({
             event.preventDefault();
             travel(redo(current));
         }
+    };
+
+    /**
+     * Delete removes the selected block and Ctrl+D duplicates it, unless the
+     * focus is in a field or in text being edited; Escape clears the selection.
+     */
+    const blockShortcut = (event: KeyboardEvent<HTMLDivElement>): boolean => {
+        if (event.key === 'Escape' && selection) {
+            if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+            select(undefined);
+            return true;
+        }
+        const block = selection?.type === 'block' ? findBlock(doc, selection.id)?.block : undefined;
+        if (!block) return false;
+        const target = event.target as HTMLElement;
+        const typing =
+            target.closest('[contenteditable]:not([contenteditable="false"])') !== null ||
+            /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName);
+        const command = event.ctrlKey || event.metaKey;
+        if (command && !event.altKey && event.key.toLowerCase() === 'd') {
+            event.preventDefault();
+            const result = duplicateBlock(doc, block.id);
+            change(result.doc);
+            select({ type: 'block', id: result.block.id });
+            return true;
+        }
+        if (!typing && !command && (event.key === 'Delete' || event.key === 'Backspace')) {
+            event.preventDefault();
+            change(removeBlock(doc, block.id));
+            select(undefined);
+            return true;
+        }
+        return false;
     };
 
     // Selecting something on the canvas brings the inspector back.

@@ -16,6 +16,7 @@ import {
     type WarningSubject,
 } from '@mailblocks/core';
 import { useMemo } from 'react';
+import { BlockToolbar } from './BlockToolbar';
 import { ButtonBlockView } from './ButtonBlockView';
 import { withScheme, type ColorScheme } from './colors';
 import { CompatMarker } from './CompatMarker';
@@ -111,7 +112,13 @@ export function Canvas({
         warnings.get(subjectKey(subject)) ?? NO_WARNINGS;
 
     return (
-        <div className="mb-canvas" style={{ backgroundColor }} onClick={() => onSelect(undefined)}>
+        <div
+            className="mb-canvas"
+            // Focusable, so clicking a block that is not text keeps the keyboard shortcuts working.
+            tabIndex={-1}
+            style={{ backgroundColor }}
+            onClick={() => onSelect(undefined)}
+        >
             <div
                 className="mb-content"
                 style={{
@@ -163,6 +170,14 @@ export function Canvas({
                                     // The marker sits beside the block view, not in it: a text
                                     // block's element holds only the text being edited.
                                     <div key={block.id} className="mb-block-slot">
+                                        {isSelected('block', block.id) && (
+                                            <BlockToolbar
+                                                doc={doc}
+                                                block={block}
+                                                onChange={onChange}
+                                                onSelect={onSelect}
+                                            />
+                                        )}
                                         <BlockView
                                             block={block}
                                             scheme={scheme}

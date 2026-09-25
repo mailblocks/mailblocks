@@ -153,10 +153,15 @@
 
 /* Canvas ------------------------------------------------------------------ */
 
+.mb-canvas:focus {
+    outline: none;
+}
+
 .mb-canvas {
     flex: 1;
     overflow: auto;
-    padding: 32px 16px;
+    /* Room at the top for the text toolbar of the first block. */
+    padding: 48px 16px 32px;
 }
 
 .mb-content {
@@ -216,6 +221,107 @@
 
 .mb-block-slot {
     position: relative;
+}
+
+/* Block toolbar ----------------------------------------------------------- */
+
+/* Floats above the selected block. It is editor chrome, so it follows the editor theme. */
+.mb-block-toolbar {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    margin-bottom: 4px;
+    padding: 3px;
+    font-family: system-ui, sans-serif;
+    font-size: 12px;
+    white-space: nowrap;
+    color: var(--mb-text);
+    background: var(--mb-bg);
+    border: 1px solid var(--mb-border-strong);
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.mb-tool-group {
+    display: flex;
+    gap: 2px;
+}
+
+/* A thin line between groups. */
+.mb-tool-group + .mb-tool-group {
+    margin-left: 4px;
+    padding-left: 4px;
+    border-left: 1px solid var(--mb-border);
+}
+
+.mb-block-toolbar button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 26px;
+    padding: 0 6px;
+    font: inherit;
+    font-size: 13px;
+    color: var(--mb-text-soft);
+    background: none;
+    border: 0;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.mb-block-toolbar button:hover:not(:disabled) {
+    background: var(--mb-bg-hover);
+}
+
+.mb-block-toolbar button:disabled {
+    color: var(--mb-text-disabled);
+    cursor: default;
+}
+
+.mb-block-toolbar button[aria-pressed='true'] {
+    color: var(--mb-accent-text);
+    background: var(--mb-accent-bg);
+}
+
+.mb-block-toolbar .mb-tool-danger:hover:not(:disabled) {
+    color: var(--mb-danger-text);
+}
+
+.mb-block-toolbar button:focus-visible {
+    outline: 2px solid var(--mb-accent);
+    outline-offset: -2px;
+}
+
+.mb-link-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+}
+
+.mb-link-form input {
+    width: 220px;
+    height: 26px;
+    padding: 0 6px;
+    font: inherit;
+    color: var(--mb-text);
+    background: var(--mb-bg);
+    border: 1px solid var(--mb-border-strong);
+    border-radius: 4px;
+}
+
+.mb-link-form input[aria-invalid='true'] {
+    border-color: var(--mb-error);
+}
+
+.mb-link-error {
+    flex-basis: 100%;
+    padding: 2px 4px;
+    color: var(--mb-error);
 }
 
 /* Compatibility markers --------------------------------------------------- */

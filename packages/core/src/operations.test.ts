@@ -9,6 +9,7 @@ import {
 import {
     addBlock,
     addRow,
+    duplicateBlock,
     findBlock,
     moveBlock,
     moveRow,
@@ -139,6 +140,28 @@ describe('moveBlock()', () => {
         const { doc, left, a, b } = fixture();
         expect(blockIds(moveBlock(doc, a.id, left.id, 1), left.id)).toEqual([b.id, a.id]);
         expect(blockIds(moveBlock(doc, b.id, left.id, 0), left.id)).toEqual([b.id, a.id]);
+    });
+});
+
+describe('duplicateBlock()', () => {
+    it('puts a copy with a new id right after the block', () => {
+        const { doc, left, a, b } = fixture();
+        const { doc: next, block: copy } = duplicateBlock(doc, a.id);
+
+        expect(blockIds(next, left.id)).toEqual([a.id, copy.id, b.id]);
+        expect(copy.id).not.toBe(a.id);
+        expect({ ...copy, id: a.id }).toEqual(a);
+    });
+
+    it('copies deeply, so editing the copy leaves the original alone', () => {
+        const { doc, a } = fixture();
+        const { doc: next, block: copy } = duplicateBlock(doc, a.id);
+        const edited = updateBlockStyles<TextBlock>(next, copy.id, { fontSize: 30 });
+        expect((findBlock(edited, a.id)?.block as TextBlock).styles.fontSize).toBe(16);
+    });
+
+    it('throws for an unknown block', () => {
+        expect(() => duplicateBlock(fixture().doc, 'nope')).toThrow(/Unknown block/);
     });
 });
 
