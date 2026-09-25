@@ -32,11 +32,13 @@ not supported and why, and exports table-based HTML that those clients can actua
   and through the attributes Outlook.com adds in its own dark mode. Light colours stay inline for
   every other client. Where a client cannot show them (Gmail, Outlook on Windows), the check says
   so.
-- **React editor** – `<MailBlocks>` lets you type into text blocks in place, add any block type,
-  style the selected block in an inspector that lists its warnings, and move blocks up and down.
-  Every block, row and the email itself carries a marker on the canvas when it has issues in the
-  target clients, coloured by the worst one; clicking it opens those warnings. Each warning says
-  what it means for the reader and links to the Can I Email result it comes from.
+- **React editor** – `<MailBlocks>` lets you type into text blocks in place and add any block
+  type. A toolbar above the selected block makes words bold, italic or a link (Ctrl+B, Ctrl+I,
+  Ctrl+K), sets a button's bold and link or an image's link, aligns the block, and moves,
+  duplicates (Ctrl+D) or removes it (Delete). The inspector holds the rest of its styles and its
+  warnings. Every block, row and the email itself carries a marker on the canvas when it has
+  issues in the target clients, coloured by the worst one; clicking it opens those warnings. Each
+  warning says what it means for the reader and links to the Can I Email result it comes from.
   Select a row to change its column layout (up to six columns, with custom widths), background,
   padding and order; select nothing to set the email background, content width and font. A
   Desktop / Mobile switch previews the phone layout, and each row can opt out of stacking. A

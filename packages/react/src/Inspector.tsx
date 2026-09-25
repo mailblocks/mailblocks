@@ -1,7 +1,5 @@
 import {
     checkBlock,
-    moveBlock,
-    removeBlock,
     updateBlock,
     updateBlockStyles,
     type Block,
@@ -64,8 +62,7 @@ export function Inspector({ doc, onChange, selectedBlock, selectedRow, targets }
         );
     }
 
-    const { block, column, index } = selectedBlock;
-    const move = (to: number) => onChange(moveBlock(doc, block.id, column.id, to));
+    const { block } = selectedBlock;
 
     return (
         <div className="mb-inspector">
@@ -80,25 +77,6 @@ export function Inspector({ doc, onChange, selectedBlock, selectedRow, targets }
             {block.type === 'spacer' && (
                 <SpacerFields doc={doc} block={block} onChange={onChange} />
             )}
-            <div className="mb-block-actions">
-                <button type="button" disabled={index === 0} onClick={() => move(index - 1)}>
-                    Move up
-                </button>
-                <button
-                    type="button"
-                    disabled={index === column.blocks.length - 1}
-                    onClick={() => move(index + 1)}
-                >
-                    Move down
-                </button>
-                <button
-                    type="button"
-                    className="mb-remove"
-                    onClick={() => onChange(removeBlock(doc, block.id))}
-                >
-                    Remove block
-                </button>
-            </div>
             <Warnings warnings={checkBlock(block, targets)} />
         </div>
     );

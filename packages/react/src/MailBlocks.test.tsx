@@ -3,9 +3,11 @@ import {
     createEmptyDocument,
     createImageBlock,
     createRow,
+    createSpacerBlock,
     createTextBlock,
     findBlock,
     type Block,
+    type ButtonBlock,
     type EmailDocument,
     type TextBlock,
 } from '@mailblocks/core';
@@ -848,5 +850,257 @@ describe('<MailBlocks /> compatibility markers on the canvas', () => {
             target: { value: 'https://example.com/a.png' },
         });
         expect(screen.queryByRole('button', { name: /Image block/ })).toBeNull();
+    });
+});
+
+describe('<MailBlocks /> block toolbar', () => {
+    /**
+     * jsdom has no execCommand, so stand in for the browser: wrap the selection
+     * in the element each command would make, and record the calls.
+     */
+    function fakeExecCommand() {
+        const calls: [string, string | undefined][] = [];
+        const wrap = (element: HTMLElement) => {
+            const range = document.getSelection()!.getRangeAt(0);
+            range.surroundContents(element);
+        };
+        const original = document.execCommand;
+        document.execCommand = (command: string, _ui?: boolean, value?: string) => {
+            calls.push([command, value]);
+            if (command === 'bold') wrap(document.createElement('b'));
+            if (command === 'createLink') {
+                const link = document.createElement('a');
+                link.href = value!;
+                wrap(link);
+            }
+            return true;
+        };
+        onTestFinished(() => {
+            document.execCommand = original;
+        });
+        return calls;
+    }
+
+    /** Selects `word` inside the text block that shows it, and returns that block. */
+    function selectWord(word: string): HTMLElement {
+        const block = screen.getByText(word, { exact: false }).closest('.mb-block') as HTMLElement;
+        const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
+        let node = walker.nextNode();
+        while (node && !node.textContent!.includes(word)) node = walker.nextNode();
+        const start = node!.textContent!.indexOf(word);
+        const range = document.createRange();
+        range.setStart(node!, start);
+        range.setEnd(node!, start + word.length);
+        block.focus();
+        document.getSelection()!.removeAllRanges();
+        document.getSelection()!.addRange(range);
+        return block;
+    }
+
+    const lastHtml = (onChange: ReturnType<typeof vi.fn>) =>
+        (onChange.mock.lastCall![0].rows[0].columns[0].blocks[0] as TextBlock).html;
+
+    /** The names of the toolbar's buttons, in order. */
+    const tools = () =>
+        within(screen.getByRole('toolbar', { name: 'Block tools' }))
+            .getAllByRole('button')
+            .map((button) => button.getAttribute('aria-label'));
+
+    it('shows above the selected block, with the tools for its type', async () => {
+        render(
+            <Harness
+                initial={documentWith(
+                    createTextBlock('<p>Hello</p>'),
+                    createButtonBlock('Shop'),
+                    createSpacerBlock(),
+                )}
+            />,
+        );
+        expect(screen.queryByRole('toolbar', { name: 'Block tools' })).toBeNull();
+
+        await userEvent.click(screen.getByText('Hello'));
+        const common = ['Move up', 'Move down', 'Duplicate', 'Remove block'];
+        const align = ['Align left', 'Align center', 'Align right'];
+        expect(tools()).toEqual(['Bold', 'Italic', 'Link', ...align, ...common]);
+
+        await userEvent.click(screen.getByText('Shop'));
+        expect(tools()).toEqual(['Bold', 'Link', ...align, ...common]);
+
+        await userEvent.click(document.querySelector('.mb-spacer') as HTMLElement);
+        expect(tools()).toEqual(common);
+    });
+
+    it('makes the selected words bold and saves the text', async () => {
+        const calls = fakeExecCommand();
+        const onChange = vi.fn();
+        render(
+            <Harness
+                initial={documentWith(createTextBlock('<p>Hello world</p>'))}
+                onChange={onChange}
+            />,
+        );
+        await userEvent.click(screen.getByText('Hello world'));
+        selectWord('world');
+
+        const bold = screen.getByRole('button', { name: 'Bold' });
+        // The button must not take the focus, or the selection would go with it.
+        expect(fireEvent.mouseDown(bold)).toBe(false);
+        fireEvent.click(bold);
+
+        expect(calls).toEqual([['bold', undefined]]);
+        expect(lastHtml(onChange)).toBe('<p>Hello <b>world</b></p>');
+        // Still selected: the click did not reach the row or the canvas.
+        expect(screen.getByRole('toolbar', { name: 'Block tools' })).toBeTruthy();
+    });
+
+    it('links the selected words to the address typed in', async () => {
+        const calls = fakeExecCommand();
+        const onChange = vi.fn();
+        render(
+            <Harness
+                initial={documentWith(createTextBlock('<p>Read more</p>'))}
+                onChange={onChange}
+            />,
+        );
+        await userEvent.click(screen.getByText('Read more'));
+        selectWord('more');
+
+        fireEvent.click(screen.getByRole('button', { name: 'Link' }));
+        const address = screen.getByLabelText('Link address');
+        fireEvent.change(address, { target: { value: 'example.com/blog' } });
+        fireEvent.submit(address.closest('form')!);
+
+        expect(calls).toEqual([['createLink', 'https://example.com/blog']]);
+        expect(lastHtml(onChange)).toBe('<p>Read <a href="https://example.com/blog">more</a></p>');
+        expect(screen.queryByLabelText('Link address')).toBeNull();
+    });
+
+    it('refuses addresses that are not web, email or phone links', async () => {
+        const calls = fakeExecCommand();
+        render(<Harness initial={documentWith(createTextBlock('<p>Read more</p>'))} />);
+        await userEvent.click(screen.getByText('Read more'));
+        selectWord('more');
+
+        fireEvent.click(screen.getByRole('button', { name: 'Link' }));
+        const address = screen.getByLabelText('Link address');
+        fireEvent.change(address, { target: { value: 'javascript:alert(1)' } });
+        fireEvent.submit(address.closest('form')!);
+
+        expect(calls).toEqual([]);
+        expect(screen.getByRole('alert').textContent).toMatch(/web address/);
+        expect(address.getAttribute('aria-invalid')).toBe('true');
+    });
+
+    it('opens the link field with Ctrl+K and closes it with Escape', async () => {
+        render(<Harness initial={documentWith(createTextBlock('<p>Read more</p>'))} />);
+        await userEvent.click(screen.getByText('Read more'));
+        const block = selectWord('more');
+
+        fireEvent.keyDown(block, { key: 'k', ctrlKey: true });
+        const address = screen.getByLabelText('Link address');
+        fireEvent.keyDown(address, { key: 'Escape' });
+        expect(screen.queryByLabelText('Link address')).toBeNull();
+        expect(screen.getByRole('button', { name: 'Bold' })).toBeTruthy();
+    });
+});
+
+describe('<MailBlocks /> block tools for every block', () => {
+    function buttonDoc() {
+        return documentWith(
+            createTextBlock('<p>Intro</p>'),
+            createButtonBlock('Shop', 'https://example.com'),
+        );
+    }
+    const blocks = (onChange: ReturnType<typeof vi.fn>) =>
+        onChange.mock.lastCall![0].rows[0].columns[0].blocks as Block[];
+
+    it('aligns the selected block from the toolbar', async () => {
+        const onChange = vi.fn();
+        render(<Harness initial={buttonDoc()} onChange={onChange} />);
+        await userEvent.click(screen.getByText('Shop'));
+
+        await userEvent.click(screen.getByRole('button', { name: 'Align right' }));
+        expect((blocks(onChange)[1] as ButtonBlock).styles.align).toBe('right');
+        expect(
+            screen.getByRole('button', { name: 'Align right' }).getAttribute('aria-pressed'),
+        ).toBe('true');
+
+        await userEvent.click(screen.getByText('Intro'));
+        await userEvent.click(screen.getByRole('button', { name: 'Align center' }));
+        expect((blocks(onChange)[0] as TextBlock).styles.textAlign).toBe('center');
+    });
+
+    it('makes a button bold and edits or removes its link', async () => {
+        const onChange = vi.fn();
+        render(<Harness initial={buttonDoc()} onChange={onChange} />);
+        await userEvent.click(screen.getByText('Shop'));
+
+        await userEvent.click(screen.getByRole('button', { name: 'Bold' }));
+        expect((blocks(onChange)[1] as ButtonBlock).styles.bold).toBe(false);
+
+        await userEvent.click(screen.getByRole('button', { name: 'Link' }));
+        const address = screen.getByLabelText('Link address') as HTMLInputElement;
+        expect(address.value).toBe('https://example.com');
+        fireEvent.change(address, { target: { value: 'example.com/sale' } });
+        fireEvent.submit(address.closest('form')!);
+        expect((blocks(onChange)[1] as ButtonBlock).href).toBe('https://example.com/sale');
+
+        await userEvent.click(screen.getByRole('button', { name: 'Link' }));
+        await userEvent.click(screen.getByRole('button', { name: 'Remove' }));
+        expect((blocks(onChange)[1] as ButtonBlock).href).toBe('');
+    });
+
+    it('duplicates the selected block and selects the copy', async () => {
+        const onChange = vi.fn();
+        render(<Harness initial={buttonDoc()} onChange={onChange} />);
+        await userEvent.click(screen.getByText('Shop'));
+
+        await userEvent.click(screen.getByRole('button', { name: 'Duplicate' }));
+        const [, original, copy] = blocks(onChange);
+        expect(copy).toMatchObject({ type: 'button', text: 'Shop' });
+        expect(copy!.id).not.toBe(original!.id);
+        expect(screen.getAllByText('Shop')[1]!.closest('.mb-block')!.className).toContain(
+            'mb-block-selected',
+        );
+    });
+
+    it('removes the selected block and clears the selection', async () => {
+        const onChange = vi.fn();
+        render(<Harness initial={buttonDoc()} onChange={onChange} />);
+        await userEvent.click(screen.getByText('Shop'));
+
+        await userEvent.click(screen.getByRole('button', { name: 'Remove block' }));
+        expect(blocks(onChange).map((block) => block.type)).toEqual(['text']);
+        expect(screen.queryByRole('toolbar', { name: 'Block tools' })).toBeNull();
+        expect(screen.getByRole('heading', { name: 'Email' })).toBeTruthy();
+    });
+
+    it('removes with Delete, duplicates with Ctrl+D and lets go with Escape', async () => {
+        const onChange = vi.fn();
+        render(<Harness initial={buttonDoc()} onChange={onChange} />);
+        const shop = screen.getByText('Shop');
+        await userEvent.click(shop);
+
+        fireEvent.keyDown(shop, { key: 'd', ctrlKey: true });
+        expect(blocks(onChange).map((block) => block.type)).toEqual(['text', 'button', 'button']);
+
+        fireEvent.keyDown(shop, { key: 'Delete' });
+        expect(blocks(onChange).map((block) => block.type)).toEqual(['text', 'button']);
+
+        await userEvent.click(screen.getByText('Shop'));
+        fireEvent.keyDown(screen.getByText('Shop'), { key: 'Escape' });
+        expect(screen.queryByRole('toolbar', { name: 'Block tools' })).toBeNull();
+    });
+
+    it('leaves Delete and Backspace to the text while it is being edited', async () => {
+        const onChange = vi.fn();
+        render(<Harness initial={buttonDoc()} onChange={onChange} />);
+        const intro = screen.getByText('Intro');
+        await userEvent.click(intro);
+        onChange.mockClear();
+
+        fireEvent.keyDown(intro.closest('.mb-block')!, { key: 'Backspace' });
+        fireEvent.keyDown(intro.closest('.mb-block')!, { key: 'Delete' });
+        expect(onChange).not.toHaveBeenCalled();
     });
 });
