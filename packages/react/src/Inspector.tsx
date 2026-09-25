@@ -9,6 +9,7 @@ import {
     type DividerBlock,
     type EmailDocument,
     type ImageBlock,
+    type LintIssue,
     type SpacerBlock,
     type Target,
     type TextBlock,
@@ -27,6 +28,7 @@ import {
     Section,
 } from './fields';
 import { RowSettings } from './RowSettings';
+import { about } from './subjects';
 import { Warnings } from './Warnings';
 
 interface InspectorProps {
@@ -36,13 +38,22 @@ interface InspectorProps {
     selectedBlock: BlockLocation | undefined;
     selectedRow: { row: Row; index: number } | undefined;
     targets: Target[];
+    /** Every issue `lint()` found in the document; each panel shows its own. */
+    issues: readonly LintIssue[];
 }
 
 /**
  * The side panel: the selected block's styles and compatibility warnings,
  * the selected row's settings, or the email's settings when nothing is selected.
  */
-export function Inspector({ doc, onChange, selectedBlock, selectedRow, targets }: InspectorProps) {
+export function Inspector({
+    doc,
+    onChange,
+    selectedBlock,
+    selectedRow,
+    targets,
+    issues,
+}: InspectorProps) {
     if (selectedRow) {
         return (
             <div className="mb-inspector">
@@ -52,6 +63,7 @@ export function Inspector({ doc, onChange, selectedBlock, selectedRow, targets }
                     index={selectedRow.index}
                     onChange={onChange}
                     targets={targets}
+                    issues={about(issues, { type: 'row', id: selectedRow.row.id })}
                 />
             </div>
         );
@@ -59,7 +71,12 @@ export function Inspector({ doc, onChange, selectedBlock, selectedRow, targets }
     if (!selectedBlock) {
         return (
             <div className="mb-inspector">
-                <DocumentSettings doc={doc} onChange={onChange} targets={targets} />
+                <DocumentSettings
+                    doc={doc}
+                    onChange={onChange}
+                    targets={targets}
+                    issues={about(issues, { type: 'document' })}
+                />
             </div>
         );
     }
@@ -79,7 +96,10 @@ export function Inspector({ doc, onChange, selectedBlock, selectedRow, targets }
             {block.type === 'spacer' && (
                 <SpacerFields doc={doc} block={block} onChange={onChange} />
             )}
-            <Warnings warnings={checkBlock(block, targets)} />
+            <Warnings
+                warnings={checkBlock(block, targets)}
+                issues={about(issues, { type: 'block', id: block.id })}
+            />
         </div>
     );
 }

@@ -6,6 +6,7 @@ import {
     setRowColumns,
     updateRowStyles,
     type EmailDocument,
+    type LintIssue,
     type Row,
     type RowStyles,
     type Target,
@@ -62,10 +63,11 @@ interface RowSettingsProps {
     index: number;
     onChange: (doc: EmailDocument, mergeKey?: string) => void;
     targets: Target[];
+    issues: readonly LintIssue[];
 }
 
 /** Settings of the selected row: layout, background, spacing, order. */
-export function RowSettings({ doc, row, index, onChange, targets }: RowSettingsProps) {
+export function RowSettings({ doc, row, index, onChange, targets, issues }: RowSettingsProps) {
     const s = row.styles;
     const set = (patch: Partial<RowStyles>) =>
         onChange(updateRowStyles(doc, row.id, patch), fieldKey(row.id, patch));
@@ -238,7 +240,7 @@ export function RowSettings({ doc, row, index, onChange, targets }: RowSettingsP
                     Remove row
                 </button>
             </div>
-            <Warnings warnings={checkRow(row, targets)} />
+            <Warnings warnings={checkRow(row, targets)} issues={issues} />
         </>
     );
 }

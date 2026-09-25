@@ -3,6 +3,7 @@ import {
     updateDocumentStyles,
     type DocumentStyles,
     type EmailDocument,
+    type LintIssue,
     type Target,
 } from '@mailblocks/core';
 import { ColorField, DarkModeFields, fieldKey, numeric, Section } from './fields';
@@ -24,10 +25,11 @@ interface DocumentSettingsProps {
     doc: EmailDocument;
     onChange: (doc: EmailDocument, mergeKey?: string) => void;
     targets: Target[];
+    issues: readonly LintIssue[];
 }
 
 /** Settings of the whole email, shown when nothing is selected. */
-export function DocumentSettings({ doc, onChange, targets }: DocumentSettingsProps) {
+export function DocumentSettings({ doc, onChange, targets, issues }: DocumentSettingsProps) {
     const s = doc.styles;
     const set = (patch: Partial<DocumentStyles>) =>
         onChange(updateDocumentStyles(doc, patch), fieldKey('document', patch));
@@ -88,7 +90,7 @@ export function DocumentSettings({ doc, onChange, targets }: DocumentSettingsPro
                 ]}
             />
             <p className="mb-muted">Click a row or a block to edit it.</p>
-            <Warnings warnings={checkDocument(doc, targets)} />
+            <Warnings warnings={checkDocument(doc, targets)} issues={issues} />
         </>
     );
 }

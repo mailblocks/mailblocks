@@ -1,17 +1,38 @@
-import { featureUrl, targetName, type CompatWarning } from '@mailblocks/core';
+import { featureUrl, targetName, type CompatWarning, type LintIssue } from '@mailblocks/core';
 import { explainWarning, LEVEL_LABEL, propertyLabel } from './labels';
 
-/** Compatibility warnings, as shown at the bottom of every inspector panel. */
-export function Warnings({ warnings }: { warnings: CompatWarning[] }) {
+/**
+ * The issues `lint()` found and the compatibility warnings, as shown at the
+ * bottom of every inspector panel.
+ */
+export function Warnings({
+    warnings,
+    issues = [],
+}: {
+    warnings: CompatWarning[];
+    issues?: readonly LintIssue[];
+}) {
+    const count = warnings.length + issues.length;
     return (
         <>
             <h3 className="mb-warnings-title">
-                Warnings <span className="mb-muted">({warnings.length})</span>
+                Warnings <span className="mb-muted">({count})</span>
             </h3>
-            {warnings.length === 0 ? (
+            {count === 0 ? (
                 <p className="mb-muted">No warnings for the selected targets.</p>
             ) : (
                 <ul className="mb-warnings">
+                    {issues.map((issue) => (
+                        <li key={`${issue.rule}/${issue.message}`}>
+                            <span
+                                className={`mb-level mb-level-${issue.severity === 'error' ? 'n' : 'a'}`}
+                            >
+                                {issue.severity}
+                            </span>
+                            <strong>{issue.message}</strong>
+                            <p className="mb-explanation">{issue.hint}</p>
+                        </li>
+                    ))}
                     {warnings.map((warning) => (
                         <li
                             key={`${warning.property}/${warning.target.family}/${warning.target.platform}`}

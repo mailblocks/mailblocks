@@ -10,8 +10,8 @@ import {
     createTextBlock,
     updateBlock,
     type Block,
-    type CompatWarning,
     type EmailDocument,
+    type LintIssue,
     type Target,
     type WarningSubject,
 } from '@mailblocks/core';
@@ -19,10 +19,11 @@ import { useMemo } from 'react';
 import { BlockToolbar } from './BlockToolbar';
 import { ButtonBlockView } from './ButtonBlockView';
 import { withScheme, type ColorScheme } from './colors';
-import { CompatMarker } from './CompatMarker';
+import { IssueMarker } from './IssueMarker';
 import { DividerBlockView } from './DividerBlockView';
 import { ImageBlockView } from './ImageBlockView';
 import type { Selection } from './selection';
+import { bySubject, subjectKey } from './subjects';
 import { SpacerBlockView } from './SpacerBlockView';
 import { TextBlockView } from './TextBlockView';
 
@@ -54,24 +55,13 @@ interface CanvasProps {
     onSelect: (selection: Selection | undefined) => void;
     /** Clients whose warnings are marked on the canvas. */
     targets: readonly Target[];
+    /** The document's issues from `lint()`, marked on the canvas too. */
+    issues: readonly LintIssue[];
     /** Called when a marker is clicked: show that subject and its warnings. */
     onShowWarnings: (selection: Selection | undefined) => void;
 }
 
-const subjectKey = (subject: WarningSubject) =>
-    subject.type === 'document' ? 'document' : `${subject.type}:${subject.id}`;
-
-/** Warnings grouped by what they are about, looked up with {@link subjectKey}. */
-function warningsBySubject(warnings: readonly CompatWarning[]): Map<string, CompatWarning[]> {
-    const groups = new Map<string, CompatWarning[]>();
-    for (const warning of warnings) {
-        const key = subjectKey(warning.subject);
-        groups.set(key, [...(groups.get(key) ?? []), warning]);
-    }
-    return groups;
-}
-
-const NO_WARNINGS: CompatWarning[] = [];
+const NONE: never[] = [];
 
 /** Renders the document roughly as the export will, with every block editable in place. */
 export function Canvas({
@@ -82,6 +72,7 @@ export function Canvas({
     selection,
     onSelect,
     targets,
+    issues,
     onShowWarnings,
 }: CanvasProps) {
     const { backgroundColor, contentWidth, contentBackgroundColor, fontFamily } = withScheme(
@@ -107,9 +98,10 @@ export function Canvas({
     const isSelected = (type: Selection['type'], id: string) =>
         selection?.type === type && selection.id === id;
 
-    const warnings = useMemo(() => warningsBySubject(check(doc, targets)), [doc, targets]);
-    const warningsFor = (subject: WarningSubject) =>
-        warnings.get(subjectKey(subject)) ?? NO_WARNINGS;
+    const warnings = useMemo(() => bySubject(check(doc, targets)), [doc, targets]);
+    const issuesBySubject = useMemo(() => bySubject(issues), [issues]);
+    const warningsFor = (subject: WarningSubject) => warnings.get(subjectKey(subject)) ?? NONE;
+    const issuesFor = (subject: WarningSubject) => issuesBySubject.get(subjectKey(subject)) ?? NONE;
 
     return (
         <div
@@ -127,10 +119,11 @@ export function Canvas({
                     fontFamily,
                 }}
             >
-                <CompatMarker
+                <IssueMarker
                     className="mb-marker-document"
                     subject="Email settings"
                     warnings={warningsFor({ type: 'document' })}
+                    issues={issuesFor({ type: 'document' })}
                     onClick={() => onShowWarnings(undefined)}
                 />
                 {doc.rows.map((row, rowIndex) => (
@@ -154,10 +147,11 @@ export function Canvas({
                             paddingBottom: row.styles.paddingBottom,
                         }}
                     >
-                        <CompatMarker
+                        <IssueMarker
                             className="mb-marker-row"
                             subject={`Row ${rowIndex + 1}`}
                             warnings={warningsFor({ type: 'row', id: row.id })}
+                            issues={issuesFor({ type: 'row', id: row.id })}
                             onClick={() => onShowWarnings({ type: 'row', id: row.id })}
                         />
                         {row.columns.map((column) => (
@@ -196,9 +190,10 @@ export function Canvas({
                                                 )
                                             }
                                         />
-                                        <CompatMarker
+                                        <IssueMarker
                                             subject={`${BLOCK_LABELS[block.type]} block`}
                                             warnings={warningsFor({ type: 'block', id: block.id })}
+                                            issues={issuesFor({ type: 'block', id: block.id })}
                                             onClick={() =>
                                                 onShowWarnings({ type: 'block', id: block.id })
                                             }
