@@ -1,4 +1,13 @@
-import { useId, useRef, type ChangeEvent, type KeyboardEvent, type ReactNode } from 'react';
+import {
+    createContext,
+    useContext,
+    useId,
+    useRef,
+    useState,
+    type ChangeEvent,
+    type KeyboardEvent,
+    type ReactNode,
+} from 'react';
 import { AlignIcon, LineStyleIcon } from './icons';
 
 /** Inputs and helpers shared by the inspector panels. */
@@ -20,6 +29,7 @@ export interface Padding {
     paddingLeft: number;
 }
 
+/** The four sides of a padding, two by two. */
 export function PaddingFields({
     styles,
     onChange,
@@ -31,7 +41,7 @@ export function PaddingFields({
 }) {
     const sides = ['Top', 'Right', 'Bottom', 'Left'] as const;
     return (
-        <fieldset>
+        <fieldset className="mb-grid">
             <legend>{legend}</legend>
             {sides.map((side) => {
                 const key = `padding${side}` as const;
@@ -137,6 +147,78 @@ export const LINE_STYLE_CHOICES: Choice<LineStyle>[] = [
     { value: 'dotted', label: 'Dotted', icon: <LineStyleIcon lineStyle="dotted" /> },
 ];
 
+/** `#abc` or `#aabbcc`, in lower case with six digits; `undefined` when it is neither. */
+export function normalizeHex(input: string): string | undefined {
+    const match = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(input.trim());
+    if (!match) return undefined;
+    const digits = match[1]!.toLowerCase();
+    return `#${digits.length === 3 ? [...digits].map((d) => d + d).join('') : digits}`;
+}
+
+/**
+ * A colour: the browser's colour picker and the same colour as hex text, which
+ * can be read and typed or pasted. The text is applied on blur or Enter, and
+ * goes back to the colour when it is not one. `onClear`, when given, adds a
+ * button that takes the colour away.
+ */
+export function ColorField({
+    label,
+    value,
+    onChange,
+    onClear,
+    clearTitle,
+}: {
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    onClear?: (() => void) | undefined;
+    clearTitle?: string;
+}) {
+    const id = useId();
+    const apply = (input: HTMLInputElement) => {
+        const hex = normalizeHex(input.value);
+        if (hex && hex !== value.toLowerCase()) onChange(hex);
+        else input.value = value;
+    };
+    return (
+        <div className="mb-field">
+            <label htmlFor={id}>{label}</label>
+            <span className="mb-color">
+                <input
+                    id={id}
+                    type="color"
+                    value={value}
+                    onChange={(event) => onChange(event.target.value)}
+                />
+                <input
+                    // Remount when the colour changes elsewhere (the picker, undo).
+                    key={value}
+                    type="text"
+                    aria-label={`${label} hex`}
+                    defaultValue={value}
+                    spellCheck={false}
+                    maxLength={7}
+                    onBlur={(event) => apply(event.currentTarget)}
+                    onKeyDown={(event) => {
+                        if (event.key === 'Enter') event.currentTarget.blur();
+                    }}
+                />
+                {onClear && (
+                    <button
+                        type="button"
+                        className="mb-clear"
+                        aria-label={`Clear ${label.toLowerCase()}`}
+                        title={clearTitle}
+                        onClick={onClear}
+                    >
+                        ×
+                    </button>
+                )}
+            </span>
+        </div>
+    );
+}
+
 export interface DarkColor {
     label: string;
     /** The dark mode colour, or undefined to keep the light one. */
@@ -152,35 +234,62 @@ export interface DarkColor {
  */
 export function DarkModeFields({ colors }: { colors: readonly DarkColor[] }) {
     return (
-        <fieldset>
-            <legend>Dark mode</legend>
+        <Section title="Dark mode">
             {colors.map(({ label, value, light, onChange }) => (
-                <label key={label}>
-                    {label}
-                    <span className="mb-dark-color">
-                        <input
-                            type="color"
-                            value={value ?? light}
-                            onChange={(event) => onChange(event.target.value)}
-                        />
-                        {value !== undefined && (
-                            <button
-                                type="button"
-                                className="mb-clear"
-                                aria-label={`Clear ${label.toLowerCase()}`}
-                                title="Same as in light mode"
-                                onClick={(event) => {
-                                    // Keep the click from reaching the colour input through the label.
-                                    event.preventDefault();
-                                    onChange(undefined);
-                                }}
-                            >
-                                ×
-                            </button>
-                        )}
-                    </span>
-                </label>
+                <ColorField
+                    key={label}
+                    label={label}
+                    value={value ?? light}
+                    onChange={onChange}
+                    onClear={value !== undefined ? () => onChange(undefined) : undefined}
+                    clearTitle="Same as in light mode"
+                />
             ))}
-        </fieldset>
+        </Section>
+    );
+}
+
+/** Which sections are folded, by title, so they stay folded from one selection to the next. */
+const FoldedSections = createContext<{
+    folded: ReadonlySet<string>;
+    toggle: (title: string) => void;
+}>({ folded: new Set(), toggle: () => {} });
+
+/** Remembers the folded sections of everything inside it. */
+export function SectionsProvider({ children }: { children: ReactNode }) {
+    const [folded, setFolded] = useState<ReadonlySet<string>>(new Set());
+    const toggle = (title: string) =>
+        setFolded((current) => {
+            const next = new Set(current);
+            if (!next.delete(title)) next.add(title);
+            return next;
+        });
+    return <FoldedSections.Provider value={{ folded, toggle }}>{children}</FoldedSections.Provider>;
+}
+
+/** A titled part of a panel that folds away with a click on its title. */
+export function Section({ title, children }: { title: string; children: ReactNode }) {
+    const { folded, toggle } = useContext(FoldedSections);
+    const open = !folded.has(title);
+    const id = useId();
+    return (
+        <section className="mb-section">
+            <h3>
+                <button
+                    type="button"
+                    className="mb-section-toggle"
+                    aria-expanded={open}
+                    aria-controls={id}
+                    onClick={() => toggle(title)}
+                >
+                    {title}
+                </button>
+            </h3>
+            {open && (
+                <div id={id} className="mb-section-body">
+                    {children}
+                </div>
+            )}
+        </section>
     );
 }

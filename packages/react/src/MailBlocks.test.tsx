@@ -1104,3 +1104,78 @@ describe('<MailBlocks /> block tools for every block', () => {
         expect(onChange).not.toHaveBeenCalled();
     });
 });
+
+describe('<MailBlocks /> inspector layout', () => {
+    it('edits a colour as hex text, and puts back what is not a colour', async () => {
+        const onChange = vi.fn();
+        render(
+            <Harness initial={documentWith(createTextBlock('<p>Hello</p>'))} onChange={onChange} />,
+        );
+        await userEvent.click(screen.getByText('Hello'));
+
+        const hex = screen.getByLabelText('Color hex') as HTMLInputElement;
+        expect(hex.value).toBe('#000000');
+        fireEvent.change(hex, { target: { value: '#F60' } });
+        fireEvent.blur(hex);
+        const block = () => onChange.mock.lastCall![0].rows[0].columns[0].blocks[0] as TextBlock;
+        expect(block().styles.color).toBe('#ff6600');
+        expect((screen.getByLabelText('Color') as HTMLInputElement).value).toBe('#ff6600');
+
+        const again = screen.getByLabelText('Color hex') as HTMLInputElement;
+        fireEvent.change(again, { target: { value: 'orange' } });
+        fireEvent.blur(again);
+        expect(block().styles.color).toBe('#ff6600');
+        expect((screen.getByLabelText('Color hex') as HTMLInputElement).value).toBe('#ff6600');
+    });
+
+    it('follows the colour picker in the hex text', async () => {
+        render(<Harness initial={documentWith(createTextBlock('<p>Hello</p>'))} />);
+        await userEvent.click(screen.getByText('Hello'));
+        fireEvent.change(screen.getByLabelText('Color'), { target: { value: '#123456' } });
+        expect((screen.getByLabelText('Color hex') as HTMLInputElement).value).toBe('#123456');
+    });
+
+    it('folds a section away and keeps it folded for the next block', async () => {
+        render(
+            <Harness
+                initial={documentWith(createTextBlock('<p>One</p>'), createTextBlock('<p>Two</p>'))}
+            />,
+        );
+        await userEvent.click(screen.getByText('One'));
+        const spacing = screen.getByRole('button', { name: 'Spacing' });
+        expect(spacing.getAttribute('aria-expanded')).toBe('true');
+        expect(screen.getByLabelText('Top')).toBeTruthy();
+
+        await userEvent.click(spacing);
+        expect(spacing.getAttribute('aria-expanded')).toBe('false');
+        expect(screen.queryByLabelText('Top')).toBeNull();
+
+        await userEvent.click(screen.getByText('Two'));
+        expect(screen.getByRole('button', { name: 'Spacing' }).getAttribute('aria-expanded')).toBe(
+            'false',
+        );
+        // Other sections stay open.
+        expect(screen.getByLabelText('Font size')).toBeTruthy();
+    });
+
+    it('lays the padding out two by two', async () => {
+        render(<Harness initial={documentWith(createTextBlock('<p>Hello</p>'))} />);
+        await userEvent.click(screen.getByText('Hello'));
+        expect(
+            screen.getByLabelText('Top').closest('fieldset')!.classList.contains('mb-grid'),
+        ).toBe(true);
+    });
+
+    it('marks empty columns, which keep their add menu in view', () => {
+        const doc = createEmptyDocument();
+        const row = createRow(2);
+        row.columns[0]!.blocks.push(createTextBlock('<p>Left</p>'));
+        doc.rows.push(row);
+        const { container } = render(<Harness initial={doc} />);
+        const columns = [...container.querySelectorAll('.mb-column')];
+        expect(columns.map((column) => column.classList.contains('mb-column-empty'))).toEqual([
+            false,
+            true,
+        ]);
+    });
+});
