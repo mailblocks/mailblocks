@@ -35,8 +35,8 @@ not supported and why, and exports table-based HTML that those clients can actua
 - **React editor** – `<MailBlocks>` lets you type into text blocks in place and add any block
   type. A toolbar above the selected block makes words bold, italic or a link (Ctrl+B, Ctrl+I,
   Ctrl+K), sets a button's bold and link or an image's link, aligns the block, and moves,
-  duplicates (Ctrl+D) or removes it (Delete). The inspector holds the rest of its styles and its
-  warnings. Every block, row and the email itself carries a marker on the canvas when it has
+  duplicates (Ctrl+D) or removes it (Delete). The inspector holds the rest of its styles, in
+  sections that fold away, with every colour as a picker and as hex text, and its warnings. Every block, row and the email itself carries a marker on the canvas when it has
   issues in the target clients, coloured by the worst one; clicking it opens those warnings. Each
   warning says what it means for the reader and links to the Can I Email result it comes from.
   Select a row to change its column layout (up to six columns, with custom widths), background,

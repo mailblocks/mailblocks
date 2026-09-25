@@ -5,7 +5,7 @@ import {
     type EmailDocument,
     type Target,
 } from '@mailblocks/core';
-import { DarkModeFields, fieldKey, numeric } from './fields';
+import { ColorField, DarkModeFields, fieldKey, numeric, Section } from './fields';
 import { Warnings } from './Warnings';
 
 /** Font stacks that render the same, or close to it, in every email client. */
@@ -35,46 +35,41 @@ export function DocumentSettings({ doc, onChange, targets }: DocumentSettingsPro
 
     return (
         <>
-            <h3>Email</h3>
-            <label>
-                Background
-                <input
-                    type="color"
+            <Section title="Email">
+                <ColorField
+                    label="Background"
                     value={s.backgroundColor}
-                    onChange={(event) => set({ backgroundColor: event.target.value })}
+                    onChange={(backgroundColor) => set({ backgroundColor })}
                 />
-            </label>
-            <label>
-                Content background
-                <input
-                    type="color"
+                <ColorField
+                    label="Content background"
                     value={s.contentBackgroundColor}
-                    onChange={(event) => set({ contentBackgroundColor: event.target.value })}
+                    onChange={(contentBackgroundColor) => set({ contentBackgroundColor })}
                 />
-            </label>
-            <label>
-                Content width
-                <input
-                    type="number"
-                    min={320}
-                    max={900}
-                    value={s.contentWidth}
-                    onChange={numeric((contentWidth) => set({ contentWidth }))}
-                />
-            </label>
-            <label>
-                Font
-                <select
-                    value={s.fontFamily}
-                    onChange={(event) => set({ fontFamily: event.target.value })}
-                >
-                    {fonts.map((font) => (
-                        <option key={font} value={font}>
-                            {font.split(',')[0]?.replaceAll("'", '')}
-                        </option>
-                    ))}
-                </select>
-            </label>
+                <label>
+                    Content width
+                    <input
+                        type="number"
+                        min={320}
+                        max={900}
+                        value={s.contentWidth}
+                        onChange={numeric((contentWidth) => set({ contentWidth }))}
+                    />
+                </label>
+                <label>
+                    Font
+                    <select
+                        value={s.fontFamily}
+                        onChange={(event) => set({ fontFamily: event.target.value })}
+                    >
+                        {fonts.map((font) => (
+                            <option key={font} value={font}>
+                                {font.split(',')[0]?.replaceAll("'", '')}
+                            </option>
+                        ))}
+                    </select>
+                </label>
+            </Section>
             <DarkModeFields
                 colors={[
                     {

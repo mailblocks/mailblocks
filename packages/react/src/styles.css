@@ -534,8 +534,67 @@
 }
 
 .mb-inspector h3 + h3,
-.mb-inspector .mb-block-actions + h3 {
+.mb-inspector .mb-block-actions + h3,
+.mb-inspector .mb-section + h3 {
     margin-top: 20px;
+}
+
+/* Sections fold away with a click on their title. */
+.mb-section + .mb-section {
+    margin-top: 6px;
+    padding-top: 12px;
+    border-top: 1px solid var(--mb-border);
+}
+
+.mb-section + .mb-block-actions {
+    margin-top: 12px;
+}
+
+.mb-section h3 {
+    margin: 0;
+}
+
+.mb-section-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    padding: 0 0 10px;
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    color: inherit;
+    background: none;
+    border: 0;
+    cursor: pointer;
+}
+
+.mb-section-toggle::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    transform: rotate(45deg) translate(-2px, -2px);
+    transition: transform 0.15s;
+}
+
+.mb-section-toggle[aria-expanded='false'] {
+    padding-bottom: 0;
+}
+
+.mb-section-toggle[aria-expanded='false']::before {
+    transform: rotate(-45deg);
+}
+
+.mb-section-toggle:hover {
+    color: var(--mb-text);
+}
+
+.mb-section-toggle:focus-visible {
+    outline: 2px solid var(--mb-accent);
+    outline-offset: 2px;
+    border-radius: 2px;
 }
 
 .mb-inspector label {
@@ -583,6 +642,38 @@
     width: 70px;
 }
 
+/* Fields two by two, like the sides of a padding. */
+.mb-inspector fieldset.mb-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 12px;
+}
+
+.mb-inspector .mb-grid legend {
+    grid-column: 1 / -1;
+}
+
+.mb-inspector .mb-grid input {
+    width: 56px;
+}
+
+/* A colour picker next to the colour as hex text. */
+.mb-color {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.mb-inspector .mb-color input[type='color'] {
+    width: 32px;
+}
+
+.mb-inspector .mb-color input[type='text'] {
+    width: 76px;
+    font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+    font-size: 12px;
+}
+
 .mb-block-actions {
     display: flex;
     flex-wrap: wrap;
@@ -609,12 +700,6 @@
 .mb-block-actions .mb-remove {
     color: var(--mb-danger-text);
     border-color: var(--mb-danger-border);
-}
-
-.mb-dark-color {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
 }
 
 .mb-clear {
@@ -729,6 +814,23 @@
 .mb-add-block {
     display: flex;
     justify-content: center;
+}
+
+/*
+ * The add menu stays out of the way until the pointer is over its column, or
+ * it has the focus. Empty columns keep it, since it is all they show, and so do
+ * touch screens, which have no hover.
+ */
+@media (hover: hover) {
+    .mb-column:not(.mb-column-empty) .mb-add-block {
+        opacity: 0;
+        transition: opacity 0.1s;
+    }
+
+    .mb-column:hover .mb-add-block,
+    .mb-add-block:focus-within {
+        opacity: 1;
+    }
 }
 
 select.mb-add {

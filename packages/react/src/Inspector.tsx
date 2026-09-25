@@ -18,11 +18,13 @@ import { DocumentSettings } from './DocumentSettings';
 import {
     ALIGN_CHOICES,
     ChoiceField,
+    ColorField,
     DarkModeFields,
     fieldKey,
     LINE_STYLE_CHOICES,
     numeric,
     PaddingFields,
+    Section,
 } from './fields';
 import { RowSettings } from './RowSettings';
 import { Warnings } from './Warnings';
@@ -97,50 +99,46 @@ function TextFields({ doc, block, onChange }: FieldsProps<TextBlock>) {
 
     return (
         <>
-            <h3>Text</h3>
-            <label>
-                Font family
-                <input
-                    type="text"
-                    value={s.fontFamily ?? ''}
-                    placeholder={doc.styles.fontFamily}
-                    onChange={(event) => set({ fontFamily: event.target.value || undefined })}
+            <Section title="Text">
+                <label>
+                    Font family
+                    <input
+                        type="text"
+                        value={s.fontFamily ?? ''}
+                        placeholder={doc.styles.fontFamily}
+                        onChange={(event) => set({ fontFamily: event.target.value || undefined })}
+                    />
+                </label>
+                <label>
+                    Font size
+                    <input
+                        type="number"
+                        min={8}
+                        value={s.fontSize}
+                        onChange={numeric((fontSize) => set({ fontSize }))}
+                    />
+                </label>
+                <label>
+                    Line height
+                    <input
+                        type="number"
+                        min={0.8}
+                        step={0.1}
+                        value={s.lineHeight}
+                        onChange={numeric((lineHeight) => set({ lineHeight }))}
+                    />
+                </label>
+                <ColorField label="Color" value={s.color} onChange={(color) => set({ color })} />
+                <ChoiceField
+                    label="Align"
+                    value={s.textAlign}
+                    choices={ALIGN_CHOICES}
+                    onChange={(textAlign) => set({ textAlign })}
                 />
-            </label>
-            <label>
-                Font size
-                <input
-                    type="number"
-                    min={8}
-                    value={s.fontSize}
-                    onChange={numeric((fontSize) => set({ fontSize }))}
-                />
-            </label>
-            <label>
-                Line height
-                <input
-                    type="number"
-                    min={0.8}
-                    step={0.1}
-                    value={s.lineHeight}
-                    onChange={numeric((lineHeight) => set({ lineHeight }))}
-                />
-            </label>
-            <label>
-                Color
-                <input
-                    type="color"
-                    value={s.color}
-                    onChange={(event) => set({ color: event.target.value })}
-                />
-            </label>
-            <ChoiceField
-                label="Align"
-                value={s.textAlign}
-                choices={ALIGN_CHOICES}
-                onChange={(textAlign) => set({ textAlign })}
-            />
-            <PaddingFields styles={s} onChange={set} />
+            </Section>
+            <Section title="Spacing">
+                <PaddingFields styles={s} onChange={set} />
+            </Section>
             <DarkModeFields
                 colors={[
                     {
@@ -167,63 +165,66 @@ function ImageFields({ doc, block, onChange }: FieldsProps<ImageBlock>) {
 
     return (
         <>
-            <h3>Image</h3>
-            <label>
-                Image URL
-                <input
-                    type="url"
-                    value={block.src}
-                    placeholder="https://"
-                    onChange={(event) => setField({ src: event.target.value })}
+            <Section title="Image">
+                <label>
+                    Image URL
+                    <input
+                        type="url"
+                        value={block.src}
+                        placeholder="https://"
+                        onChange={(event) => setField({ src: event.target.value })}
+                    />
+                </label>
+                <label>
+                    Alt text
+                    <input
+                        type="text"
+                        value={block.alt}
+                        onChange={(event) => setField({ alt: event.target.value })}
+                    />
+                </label>
+                <label>
+                    Link
+                    <input
+                        type="url"
+                        value={block.href ?? ''}
+                        placeholder="https://"
+                        onChange={(event) => setField({ href: event.target.value || undefined })}
+                    />
+                </label>
+                <label>
+                    Width
+                    <input
+                        type="number"
+                        min={1}
+                        value={block.width ?? ''}
+                        placeholder="auto"
+                        onChange={(event) =>
+                            setField({
+                                width: event.target.value ? Number(event.target.value) : undefined,
+                            })
+                        }
+                    />
+                </label>
+                <ChoiceField
+                    label="Align"
+                    value={s.align}
+                    choices={ALIGN_CHOICES}
+                    onChange={(align) => set({ align })}
                 />
-            </label>
-            <label>
-                Alt text
-                <input
-                    type="text"
-                    value={block.alt}
-                    onChange={(event) => setField({ alt: event.target.value })}
-                />
-            </label>
-            <label>
-                Link
-                <input
-                    type="url"
-                    value={block.href ?? ''}
-                    placeholder="https://"
-                    onChange={(event) => setField({ href: event.target.value || undefined })}
-                />
-            </label>
-            <label>
-                Width
-                <input
-                    type="number"
-                    min={1}
-                    value={block.width ?? ''}
-                    placeholder="auto"
-                    onChange={(event) =>
-                        setField({
-                            width: event.target.value ? Number(event.target.value) : undefined,
-                        })
-                    }
-                />
-            </label>
-            <ChoiceField
-                label="Align"
-                value={s.align}
-                choices={ALIGN_CHOICES}
-                onChange={(align) => set({ align })}
-            />
-            <label>
-                Border radius
-                <input
-                    type="number"
-                    min={0}
-                    value={s.borderRadius}
-                    onChange={numeric((borderRadius) => set({ borderRadius }))}
-                />
-            </label>
-            <PaddingFields styles={s} onChange={set} />
+                <label>
+                    Border radius
+                    <input
+                        type="number"
+                        min={0}
+                        value={s.borderRadius}
+                        onChange={numeric((borderRadius) => set({ borderRadius }))}
+                    />
+                </label>
+            </Section>
+            <Section title="Spacing">
+                <PaddingFields styles={s} onChange={set} />
+            </Section>
         </>
     );
 }
@@ -240,103 +241,100 @@ function ButtonFields({ doc, block, onChange }: FieldsProps<ButtonBlock>) {
 
     return (
         <>
-            <h3>Button</h3>
-            <label>
-                Label
-                <input
-                    type="text"
-                    value={block.text}
-                    onChange={(event) => setField({ text: event.target.value })}
+            <Section title="Button">
+                <label>
+                    Label
+                    <input
+                        type="text"
+                        value={block.text}
+                        onChange={(event) => setField({ text: event.target.value })}
+                    />
+                </label>
+                <label>
+                    Link
+                    <input
+                        type="url"
+                        value={block.href}
+                        placeholder="https://"
+                        onChange={(event) => setField({ href: event.target.value })}
+                    />
+                </label>
+                <ChoiceField
+                    label="Align"
+                    value={s.align}
+                    choices={ALIGN_CHOICES}
+                    onChange={(align) => set({ align })}
                 />
-            </label>
-            <label>
-                Link
-                <input
-                    type="url"
-                    value={block.href}
-                    placeholder="https://"
-                    onChange={(event) => setField({ href: event.target.value })}
-                />
-            </label>
-            <ChoiceField
-                label="Align"
-                value={s.align}
-                choices={ALIGN_CHOICES}
-                onChange={(align) => set({ align })}
-            />
-            <label>
-                Background
-                <input
-                    type="color"
+                <ColorField
+                    label="Background"
                     value={s.backgroundColor}
-                    onChange={(event) => set({ backgroundColor: event.target.value })}
+                    onChange={(backgroundColor) => set({ backgroundColor })}
                 />
-            </label>
-            <label>
-                Text color
-                <input
-                    type="color"
+                <ColorField
+                    label="Text color"
                     value={s.color}
-                    onChange={(event) => set({ color: event.target.value })}
+                    onChange={(color) => set({ color })}
                 />
-            </label>
-            <label>
-                Font family
-                <input
-                    type="text"
-                    value={s.fontFamily ?? ''}
-                    placeholder={doc.styles.fontFamily}
-                    onChange={(event) => set({ fontFamily: event.target.value || undefined })}
-                />
-            </label>
-            <label>
-                Font size
-                <input
-                    type="number"
-                    min={8}
-                    value={s.fontSize}
-                    onChange={numeric((fontSize) => set({ fontSize }))}
-                />
-            </label>
-            <label>
-                Bold
-                <input
-                    type="checkbox"
-                    checked={s.bold}
-                    onChange={(event) => set({ bold: event.target.checked })}
-                />
-            </label>
-            <label>
-                Border radius
-                <input
-                    type="number"
-                    min={0}
-                    value={s.borderRadius}
-                    onChange={numeric((borderRadius) => set({ borderRadius }))}
-                />
-            </label>
-            <fieldset>
-                <legend>Button padding</legend>
                 <label>
-                    Vertical
+                    Font family
                     <input
-                        type="number"
-                        min={0}
-                        value={s.innerPaddingY}
-                        onChange={numeric((innerPaddingY) => set({ innerPaddingY }))}
+                        type="text"
+                        value={s.fontFamily ?? ''}
+                        placeholder={doc.styles.fontFamily}
+                        onChange={(event) => set({ fontFamily: event.target.value || undefined })}
                     />
                 </label>
                 <label>
-                    Horizontal
+                    Font size
+                    <input
+                        type="number"
+                        min={8}
+                        value={s.fontSize}
+                        onChange={numeric((fontSize) => set({ fontSize }))}
+                    />
+                </label>
+                <label>
+                    Bold
+                    <input
+                        type="checkbox"
+                        checked={s.bold}
+                        onChange={(event) => set({ bold: event.target.checked })}
+                    />
+                </label>
+                <label>
+                    Border radius
                     <input
                         type="number"
                         min={0}
-                        value={s.innerPaddingX}
-                        onChange={numeric((innerPaddingX) => set({ innerPaddingX }))}
+                        value={s.borderRadius}
+                        onChange={numeric((borderRadius) => set({ borderRadius }))}
                     />
                 </label>
-            </fieldset>
-            <PaddingFields styles={s} onChange={set} legend="Outer padding" />
+            </Section>
+            <Section title="Spacing">
+                <fieldset className="mb-grid">
+                    <legend>Button padding</legend>
+                    <label>
+                        Vertical
+                        <input
+                            type="number"
+                            min={0}
+                            value={s.innerPaddingY}
+                            onChange={numeric((innerPaddingY) => set({ innerPaddingY }))}
+                        />
+                    </label>
+                    <label>
+                        Horizontal
+                        <input
+                            type="number"
+                            min={0}
+                            value={s.innerPaddingX}
+                            onChange={numeric((innerPaddingX) => set({ innerPaddingX }))}
+                        />
+                    </label>
+                </fieldset>
+                <PaddingFields styles={s} onChange={set} legend="Outer padding" />
+            </Section>
             <DarkModeFields
                 colors={[
                     {
@@ -364,47 +362,43 @@ function DividerFields({ doc, block, onChange }: FieldsProps<DividerBlock>) {
 
     return (
         <>
-            <h3>Divider</h3>
-            <label>
-                Color
-                <input
-                    type="color"
-                    value={s.color}
-                    onChange={(event) => set({ color: event.target.value })}
+            <Section title="Divider">
+                <ColorField label="Color" value={s.color} onChange={(color) => set({ color })} />
+                <label>
+                    Thickness
+                    <input
+                        type="number"
+                        min={1}
+                        value={s.thickness}
+                        onChange={numeric((thickness) => set({ thickness }))}
+                    />
+                </label>
+                <ChoiceField
+                    label="Line style"
+                    value={s.lineStyle}
+                    choices={LINE_STYLE_CHOICES}
+                    onChange={(lineStyle) => set({ lineStyle })}
                 />
-            </label>
-            <label>
-                Thickness
-                <input
-                    type="number"
-                    min={1}
-                    value={s.thickness}
-                    onChange={numeric((thickness) => set({ thickness }))}
+                <label>
+                    Width (%)
+                    <input
+                        type="number"
+                        min={1}
+                        max={100}
+                        value={s.width}
+                        onChange={numeric((width) => set({ width }))}
+                    />
+                </label>
+                <ChoiceField
+                    label="Align"
+                    value={s.align}
+                    choices={ALIGN_CHOICES}
+                    onChange={(align) => set({ align })}
                 />
-            </label>
-            <ChoiceField
-                label="Line style"
-                value={s.lineStyle}
-                choices={LINE_STYLE_CHOICES}
-                onChange={(lineStyle) => set({ lineStyle })}
-            />
-            <label>
-                Width (%)
-                <input
-                    type="number"
-                    min={1}
-                    max={100}
-                    value={s.width}
-                    onChange={numeric((width) => set({ width }))}
-                />
-            </label>
-            <ChoiceField
-                label="Align"
-                value={s.align}
-                choices={ALIGN_CHOICES}
-                onChange={(align) => set({ align })}
-            />
-            <PaddingFields styles={s} onChange={set} />
+            </Section>
+            <Section title="Spacing">
+                <PaddingFields styles={s} onChange={set} />
+            </Section>
             <DarkModeFields
                 colors={[
                     {
@@ -425,16 +419,17 @@ function SpacerFields({ doc, block, onChange }: FieldsProps<SpacerBlock>) {
 
     return (
         <>
-            <h3>Spacer</h3>
-            <label>
-                Height
-                <input
-                    type="number"
-                    min={1}
-                    value={block.styles.height}
-                    onChange={numeric((height) => set({ height }))}
-                />
-            </label>
+            <Section title="Spacer">
+                <label>
+                    Height
+                    <input
+                        type="number"
+                        min={1}
+                        value={block.styles.height}
+                        onChange={numeric((height) => set({ height }))}
+                    />
+                </label>
+            </Section>
         </>
     );
 }

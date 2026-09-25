@@ -17,6 +17,7 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { Canvas } from './Canvas';
 import { ClientReport } from './ClientReport';
 import type { ColorScheme } from './colors';
+import { SectionsProvider } from './fields';
 import { Inspector } from './Inspector';
 import type { Selection } from './selection';
 
@@ -242,13 +243,15 @@ export function MailBlocks({
                     </button>
                 </div>
                 {panel === 'inspector' ? (
-                    <Inspector
-                        doc={doc}
-                        onChange={change}
-                        selectedBlock={selectedBlock}
-                        selectedRow={selectedRow}
-                        targets={targets}
-                    />
+                    <SectionsProvider>
+                        <Inspector
+                            doc={doc}
+                            onChange={change}
+                            selectedBlock={selectedBlock}
+                            selectedRow={selectedRow}
+                            targets={targets}
+                        />
+                    </SectionsProvider>
                 ) : (
                     <div className="mb-inspector mb-report">
                         <ClientReport

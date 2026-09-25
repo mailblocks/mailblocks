@@ -10,7 +10,15 @@ import {
     type RowStyles,
     type Target,
 } from '@mailblocks/core';
-import { ChoiceField, DarkModeFields, fieldKey, numeric, type Choice } from './fields';
+import {
+    ChoiceField,
+    ColorField,
+    DarkModeFields,
+    fieldKey,
+    numeric,
+    Section,
+    type Choice,
+} from './fields';
 import { ColumnsIcon } from './icons';
 import { Warnings } from './Warnings';
 
@@ -67,107 +75,134 @@ export function RowSettings({ doc, row, index, onChange, targets }: RowSettingsP
 
     return (
         <>
-            <h3>Row</h3>
-            <ChoiceField
-                label="Layout"
-                value={layout?.id}
-                choices={LAYOUT_CHOICES}
-                onChange={(id) => {
-                    const chosen = LAYOUTS.find((option) => option.id === id);
-                    if (chosen) onChange(setRowColumns(doc, row.id, chosen.widths));
-                }}
-            />
-            <div className="mb-field">
-                <span>Columns</span>
-                <div className="mb-stepper">
-                    <button
-                        type="button"
-                        aria-label="Remove column"
-                        title="Remove column"
-                        disabled={count === 1}
-                        onClick={() => onChange(setRowColumns(doc, row.id, equalWidths(count - 1)))}
-                    >
-                        −
-                    </button>
-                    <output aria-label="Column count">{count}</output>
-                    <button
-                        type="button"
-                        aria-label="Add column"
-                        title="Add column"
-                        disabled={count === MAX_COLUMNS}
-                        onClick={() => onChange(setRowColumns(doc, row.id, equalWidths(count + 1)))}
-                    >
-                        +
-                    </button>
+            <Section title="Row">
+                <ChoiceField
+                    label="Layout"
+                    value={layout?.id}
+                    choices={LAYOUT_CHOICES}
+                    onChange={(id) => {
+                        const chosen = LAYOUTS.find((option) => option.id === id);
+                        if (chosen) onChange(setRowColumns(doc, row.id, chosen.widths));
+                    }}
+                />
+                <div className="mb-field">
+                    <span>Columns</span>
+                    <div className="mb-stepper">
+                        <button
+                            type="button"
+                            aria-label="Remove column"
+                            title="Remove column"
+                            disabled={count === 1}
+                            onClick={() =>
+                                onChange(setRowColumns(doc, row.id, equalWidths(count - 1)))
+                            }
+                        >
+                            −
+                        </button>
+                        <output aria-label="Column count">{count}</output>
+                        <button
+                            type="button"
+                            aria-label="Add column"
+                            title="Add column"
+                            disabled={count === MAX_COLUMNS}
+                            onClick={() =>
+                                onChange(setRowColumns(doc, row.id, equalWidths(count + 1)))
+                            }
+                        >
+                            +
+                        </button>
+                    </div>
                 </div>
-            </div>
-            {count > 1 && (
-                <fieldset>
-                    <legend>Column widths (%)</legend>
-                    {widths.map((width, i) => (
-                        <label key={row.columns[i]!.id}>
-                            Column {i + 1}
-                            <input
-                                // Remount when the width changes elsewhere (undo, a layout, a neighbour).
-                                key={formatWidth(width)}
-                                type="number"
-                                min={MIN_COLUMN_WIDTH}
-                                max={100 - MIN_COLUMN_WIDTH}
-                                step={1}
-                                defaultValue={formatWidth(width)}
-                                // Applied on blur or Enter, not per keystroke: typing "45" would
-                                // otherwise pass through "4", which is clamped to the minimum.
-                                onBlur={(event) => {
-                                    const next = Number(event.target.value);
-                                    if (
-                                        !Number.isFinite(next) ||
-                                        formatWidth(next) === formatWidth(width)
-                                    )
-                                        return;
-                                    onChange(resizeColumn(doc, row.id, i, next, MIN_COLUMN_WIDTH));
-                                }}
-                                onKeyDown={(event) => {
-                                    if (event.key === 'Enter') event.currentTarget.blur();
-                                }}
-                            />
-                        </label>
-                    ))}
-                </fieldset>
-            )}
-            {count > 1 && (
-                <label title="Put the columns below each other on screens narrower than the email">
-                    Stack on phones
+                {count > 1 && (
+                    <fieldset>
+                        <legend>Column widths (%)</legend>
+                        {widths.map((width, i) => (
+                            <label key={row.columns[i]!.id}>
+                                Column {i + 1}
+                                <input
+                                    // Remount when the width changes elsewhere (undo, a layout, a neighbour).
+                                    key={formatWidth(width)}
+                                    type="number"
+                                    min={MIN_COLUMN_WIDTH}
+                                    max={100 - MIN_COLUMN_WIDTH}
+                                    step={1}
+                                    defaultValue={formatWidth(width)}
+                                    // Applied on blur or Enter, not per keystroke: typing "45" would
+                                    // otherwise pass through "4", which is clamped to the minimum.
+                                    onBlur={(event) => {
+                                        const next = Number(event.target.value);
+                                        if (
+                                            !Number.isFinite(next) ||
+                                            formatWidth(next) === formatWidth(width)
+                                        )
+                                            return;
+                                        onChange(
+                                            resizeColumn(doc, row.id, i, next, MIN_COLUMN_WIDTH),
+                                        );
+                                    }}
+                                    onKeyDown={(event) => {
+                                        if (event.key === 'Enter') event.currentTarget.blur();
+                                    }}
+                                />
+                            </label>
+                        ))}
+                    </fieldset>
+                )}
+                {count > 1 && (
+                    <label title="Put the columns below each other on screens narrower than the email">
+                        Stack on phones
+                        <input
+                            type="checkbox"
+                            checked={s.stackOnMobile !== false}
+                            onChange={(event) => set({ stackOnMobile: event.target.checked })}
+                        />
+                    </label>
+                )}
+                <label>
+                    Background
                     <input
                         type="checkbox"
-                        checked={s.stackOnMobile !== false}
-                        onChange={(event) => set({ stackOnMobile: event.target.checked })}
+                        checked={s.backgroundColor !== undefined}
+                        onChange={(event) =>
+                            set({
+                                backgroundColor: event.target.checked
+                                    ? doc.styles.contentBackgroundColor
+                                    : undefined,
+                            })
+                        }
                     />
                 </label>
-            )}
-            <label>
-                Background
-                <input
-                    type="checkbox"
-                    checked={s.backgroundColor !== undefined}
-                    onChange={(event) =>
-                        set({
-                            backgroundColor: event.target.checked
-                                ? doc.styles.contentBackgroundColor
-                                : undefined,
-                        })
-                    }
-                />
-            </label>
-            {s.backgroundColor !== undefined && (
-                <label>
-                    Background color
-                    <input
-                        type="color"
+                {s.backgroundColor !== undefined && (
+                    <ColorField
+                        label="Background color"
                         value={s.backgroundColor}
-                        onChange={(event) => set({ backgroundColor: event.target.value })}
+                        onChange={(backgroundColor) => set({ backgroundColor })}
                     />
-                </label>
-            )}
+                )}
+            </Section>
+            <Section title="Spacing">
+                <fieldset className="mb-grid">
+                    <legend>Padding</legend>
+                    <label>
+                        Top
+                        <input
+                            type="number"
+                            min={0}
+                            value={s.paddingTop}
+                            onChange={numeric((paddingTop) => set({ paddingTop }))}
+                        />
+                    </label>
+                    <label>
+                        Bottom
+                        <input
+                            type="number"
+                            min={0}
+                            value={s.paddingBottom}
+                            onChange={numeric((paddingBottom) => set({ paddingBottom }))}
+                        />
+                    </label>
+                </fieldset>
+            </Section>
             <DarkModeFields
                 colors={[
                     {
@@ -179,27 +214,7 @@ export function RowSettings({ doc, row, index, onChange, targets }: RowSettingsP
                     },
                 ]}
             />
-            <fieldset>
-                <legend>Padding</legend>
-                <label>
-                    Top
-                    <input
-                        type="number"
-                        min={0}
-                        value={s.paddingTop}
-                        onChange={numeric((paddingTop) => set({ paddingTop }))}
-                    />
-                </label>
-                <label>
-                    Bottom
-                    <input
-                        type="number"
-                        min={0}
-                        value={s.paddingBottom}
-                        onChange={numeric((paddingBottom) => set({ paddingBottom }))}
-                    />
-                </label>
-            </fieldset>
+
             <div className="mb-block-actions">
                 <button
                     type="button"

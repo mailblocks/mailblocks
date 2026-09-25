@@ -163,7 +163,11 @@ export function Canvas({
                         {row.columns.map((column) => (
                             <div
                                 key={column.id}
-                                className="mb-column"
+                                className={
+                                    column.blocks.length === 0
+                                        ? 'mb-column mb-column-empty'
+                                        : 'mb-column'
+                                }
                                 style={{ width: stacked(row) ? '100%' : `${column.width}%` }}
                             >
                                 {column.blocks.map((block) => (
