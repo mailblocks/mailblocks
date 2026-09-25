@@ -1255,3 +1255,86 @@ describe('<MailBlocks /> email checks', () => {
         );
     });
 });
+
+describe('<MailBlocks /> pasting into text', () => {
+    function paste(target: Element, data: Record<string, string>) {
+        const event = new Event('paste', { bubbles: true, cancelable: true }) as Event & {
+            clipboardData: { getData: (type: string) => string };
+        };
+        event.clipboardData = { getData: (type) => data[type] ?? '' };
+        fireEvent(target, event);
+        return event;
+    }
+
+    function recordInserts() {
+        const inserted: string[] = [];
+        const original = document.execCommand;
+        document.execCommand = (command: string, _ui?: boolean, value?: string) => {
+            if (command === 'insertHTML' || command === 'insertText') {
+                inserted.push(`${command}: ${value}`);
+            }
+            return true;
+        };
+        onTestFinished(() => {
+            document.execCommand = original;
+        });
+        return inserted;
+    }
+
+    it('pastes only the formatting a text block keeps', async () => {
+        const inserted = recordInserts();
+        render(<Harness initial={documentWith(createTextBlock('<p>Hello</p>'))} />);
+        const block = screen.getByText('Hello').closest('.mb-block')!;
+        await userEvent.click(block);
+
+        const event = paste(block, {
+            'text/html':
+                '<p style="font-family:Comic Sans MS"><span style="font-weight:700">Big</span> news</p>' +
+                '<p>Second <img src="x"> line</p>',
+            'text/plain': 'Big news\n\nSecond line',
+        });
+        expect(event.defaultPrevented).toBe(true);
+        expect(inserted).toEqual([
+            'insertHTML: <p><strong>Big</strong> news</p><p>Second line</p>',
+        ]);
+    });
+
+    it('pastes plain text as paragraphs when there is no HTML', async () => {
+        const inserted = recordInserts();
+        render(<Harness initial={documentWith(createTextBlock('<p>Hello</p>'))} />);
+        const block = screen.getByText('Hello').closest('.mb-block')!;
+
+        paste(block, { 'text/plain': 'one\ntwo\n\nthree' });
+        expect(inserted).toEqual(['insertHTML: <p>one<br>two</p><p>three</p>']);
+    });
+
+    it('inserts a piece of a line as text, keeping its spaces', () => {
+        const inserted = recordInserts();
+        render(<Harness initial={documentWith(createTextBlock('<p>Hello</p>'))} />);
+        const block = screen.getByText('Hello').closest('.mb-block')!;
+
+        paste(block, {
+            'text/html': '<span style="color:red"> &amp; friends</span>',
+            'text/plain': ' & friends',
+        });
+        paste(block, { 'text/html': '<b> bold </b>' });
+        expect(inserted).toEqual([
+            'insertText:  & friends',
+            'insertHTML: <strong>&nbsp;bold&nbsp;</strong>',
+        ]);
+    });
+
+    it('tidies what the browser adds before saving the text', () => {
+        const onChange = vi.fn();
+        render(
+            <Harness initial={documentWith(createTextBlock('<p>Hello</p>'))} onChange={onChange} />,
+        );
+        const block = screen.getByText('Hello').closest('.mb-block')!;
+        block.innerHTML = '<p>Hello <span style="font-size:16px">joined</span></p><div>next</div>';
+        fireEvent.input(block);
+
+        const saved = onChange.mock.lastCall![0].rows[0].columns[0].blocks[0] as TextBlock;
+        expect(saved.html).toBe('<p>Hello joined</p><p>next</p>');
+        expect(block.innerHTML).toBe('<p>Hello joined</p><p>next</p>');
+    });
+});

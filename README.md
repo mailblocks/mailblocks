@@ -40,9 +40,10 @@ nothing to install.
   every other client. Where a client cannot show them (Gmail, Outlook on Windows), the check says
   so.
 - **React editor** – `<MailBlocks>` lets you type into text blocks in place and add any block
-  type. A toolbar above the selected block makes words bold, italic or a link (Ctrl+B, Ctrl+I,
-  Ctrl+K), sets a button's bold and link or an image's link, aligns the block, and moves,
-  duplicates (Ctrl+D) or removes it (Delete). The inspector holds the rest of its styles, in
+  type. Text pasted from Word, Google Docs or a web page keeps its paragraphs, bold, italic and
+  safe links, and nothing else. A toolbar above the selected block makes words bold, italic or a
+  link (Ctrl+B, Ctrl+I, Ctrl+K), sets a button's bold and link or an image's link, aligns the
+  block, and moves, duplicates (Ctrl+D) or removes it (Delete). The inspector holds the rest of its styles, in
   sections that fold away, with every colour as a picker and as hex text, and its warnings.
   Every block, row and the email itself carries a marker on the canvas when the checks or the
   target clients find an issue, coloured by the worst one; clicking it opens them. Each warning
